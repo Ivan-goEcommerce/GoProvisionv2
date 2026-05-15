@@ -9,7 +9,12 @@ from fastapi import APIRouter, Header
 from fastapi.responses import Response
 
 from backend.core.errors import AppError
-from backend.schemas.admin import AdminCommission, AdminEmployee, UpdateEmployeeRequest
+from backend.schemas.admin import (
+    AdminCommission,
+    AdminEmployee,
+    UpdateCommissionStatusRequest,
+    UpdateEmployeeRequest,
+)
 from backend.services.admin_export_service import AdminExportService
 from backend.services.admin_service import AdminService
 from backend.services.supabase_client import get_service_supabase
@@ -80,6 +85,21 @@ def list_commissions_for_admin(
     _require_admin_actor(authorization)
     admin_service = AdminService(get_service_supabase())
     return [AdminCommission.model_validate(row) for row in admin_service.list_commissions()]
+
+
+@router.patch("/commissions/{commission_id}/status", response_model=AdminCommission)
+def update_commission_status_as_admin(
+    commission_id: str,
+    payload: UpdateCommissionStatusRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> AdminCommission:
+    """Update commission status as authenticated admin."""
+    _require_admin_actor(authorization)
+    admin_service = AdminService(get_service_supabase())
+    updated = admin_service.update_commission_status(
+        commission_id=commission_id, status=payload.status
+    )
+    return AdminCommission.model_validate(updated)
 
 
 @router.get("/employees", response_model=list[AdminEmployee])

@@ -98,7 +98,7 @@ export default function LoginPage() {
     <main className="auth-shell">
       <div className="auth-card">
         <div className="mb-4 flex items-center justify-between">
-          <BrandLogo subtitle="Login fuer dein Team" />
+          <BrandLogo showText={false} />
         </div>
 
         <h1 className="auth-title">GoProvisions Login</h1>

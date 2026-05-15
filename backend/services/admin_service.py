@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from supabase import Client
 
 from backend.core.errors import AppError
@@ -71,6 +73,33 @@ class AdminService:
                 status_code=404,
             )
         return rows[0]
+
+    def update_commission_status(self, commission_id: str, status: str) -> dict:
+        """Update commission status and return updated row."""
+        updates: dict[str, str | None] = {"status": status}
+        updates["paid_at"] = (
+            datetime.now(UTC).isoformat() if status == "paid" else None
+        )
+
+        response = (
+            self.supabase.table("commissions")
+            .update(updates)
+            .eq("id", commission_id)
+            .select(
+                "id, employee_id, reason, description, revenue_amount, "
+                "commission_rate, commission_amount, status, source, source_url, "
+                "external_id, created_at, employee:employees(id,name,email)"
+            )
+            .execute()
+        )
+        rows = response.data or []
+        if not rows:
+            raise AppError(
+                error="not_found",
+                message="Commission not found.",
+                status_code=404,
+            )
+        return self._normalize_commission_row(rows[0])
 
     @staticmethod
     def _normalize_commission_row(row: dict) -> dict:

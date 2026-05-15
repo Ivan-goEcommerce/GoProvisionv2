@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import {
   type Commission,
+  type CommissionStatus,
   type EmployeeProfile,
   exportPreviousMonthOpenCommissionsCsv,
   getCommissionsForAdmin,
@@ -12,6 +13,7 @@ import {
   getEmployees,
   getEmployeeProfileByAuthUserId,
   signOut,
+  updateCommissionStatus,
   updateEmployee,
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
@@ -30,6 +32,13 @@ function formatStatusLabel(status: string): string {
   return status;
 }
 
+const COMMISSION_STATUS_OPTIONS: CommissionStatus[] = [
+  "open",
+  "in_progress",
+  "paid",
+  "cancelled",
+];
+
 export default function AdminPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +51,10 @@ export default function AdminPage() {
   const [monthFilter, setMonthFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [savingEmployeeId, setSavingEmployeeId] = useState("");
+  const [savingCommissionId, setSavingCommissionId] = useState("");
+  const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<
+    Record<string, CommissionStatus>
+  >({});
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
@@ -158,6 +171,47 @@ export default function AdminPage() {
       setError(requestError instanceof Error ? requestError.message : "Mitarbeiter konnte nicht aktualisiert werden.");
     } finally {
       setSavingEmployeeId("");
+    }
+  };
+
+  const updateCommissionDraftStatus = (
+    commissionId: string,
+    status: CommissionStatus,
+  ) => {
+    setCommissionStatusDrafts((current) => ({
+      ...current,
+      [commissionId]: status,
+    }));
+  };
+
+  const onSaveCommissionStatus = async (commission: Commission) => {
+    const nextStatus = commissionStatusDrafts[commission.id] ?? commission.status;
+    if (nextStatus === commission.status) {
+      return;
+    }
+
+    setError("");
+    setInfo("");
+    setSavingCommissionId(commission.id);
+    try {
+      const updated = await updateCommissionStatus(commission.id, { status: nextStatus });
+      setCommissions((current) =>
+        current.map((row) => (row.id === updated.id ? updated : row)),
+      );
+      setCommissionStatusDrafts((current) => {
+        const next = { ...current };
+        delete next[updated.id];
+        return next;
+      });
+      setInfo(`Provision ${updated.id} wurde auf ${formatStatusLabel(updated.status)} gesetzt.`);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Provision-Status konnte nicht aktualisiert werden.",
+      );
+    } finally {
+      setSavingCommissionId("");
     }
   };
 
@@ -293,6 +347,7 @@ export default function AdminPage() {
               <th className="py-2 pr-4">Satz</th>
               <th className="py-2 pr-4">Betrag</th>
               <th className="py-2 pr-4">Status</th>
+              <th className="py-2 pr-4">Aktion</th>
             </tr>
           </thead>
           <tbody>
@@ -304,12 +359,42 @@ export default function AdminPage() {
                 <td className="py-2 pr-4">{formatEuro(row.revenue_amount)}</td>
                 <td className="py-2 pr-4">{(row.commission_rate * 100).toFixed(2)}%</td>
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
-                <td className="py-2 pr-4">{formatStatusLabel(row.status)}</td>
+                <td className="py-2 pr-4">
+                  <select
+                    className="brand-input px-2 py-1 text-sm"
+                    onChange={(event) =>
+                      updateCommissionDraftStatus(
+                        row.id,
+                        event.target.value as CommissionStatus,
+                      )
+                    }
+                    value={commissionStatusDrafts[row.id] ?? row.status}
+                  >
+                    {COMMISSION_STATUS_OPTIONS.map((statusOption) => (
+                      <option key={statusOption} value={statusOption}>
+                        {formatStatusLabel(statusOption)}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-2 pr-4">
+                  <button
+                    className="brand-button-secondary px-3 py-1 disabled:opacity-60"
+                    disabled={
+                      savingCommissionId === row.id ||
+                      (commissionStatusDrafts[row.id] ?? row.status) === row.status
+                    }
+                    onClick={() => onSaveCommissionStatus(row)}
+                    type="button"
+                  >
+                    {savingCommissionId === row.id ? "Speichern..." : "Speichern"}
+                  </button>
+                </td>
               </tr>
             ))}
             {filteredCommissions.length === 0 ? (
               <tr>
-                <td className="py-4 text-[var(--brand-text-muted)]" colSpan={7}>
+                <td className="py-4 text-[var(--brand-text-muted)]" colSpan={8}>
                   Keine Provisionen gefunden.
                 </td>
               </tr>

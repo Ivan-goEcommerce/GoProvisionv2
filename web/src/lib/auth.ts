@@ -5,6 +5,7 @@ import { AuthError, type User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export type EmployeeRole = "admin" | "employee";
+export type CommissionStatus = "open" | "in_progress" | "paid" | "cancelled";
 
 export type EmployeeProfile = {
   id: string;
@@ -23,7 +24,7 @@ export type Commission = {
   revenue_amount: number;
   commission_rate: number;
   commission_amount: number;
-  status: string;
+  status: CommissionStatus;
   source: string;
   source_url: string | null;
   created_at: string;
@@ -47,6 +48,10 @@ export type CreateEmployeeInput = {
 export type UpdateEmployeeInput = {
   role?: EmployeeRole;
   active?: boolean;
+};
+
+export type UpdateCommissionStatusInput = {
+  status: CommissionStatus;
 };
 
 export type CsvExportResult = {
@@ -308,6 +313,24 @@ export async function updateEmployee(
     },
     "Could not update employee."
   );
+}
+
+export async function updateCommissionStatus(
+  commissionId: string,
+  input: UpdateCommissionStatusInput
+): Promise<Commission> {
+  const updated = await fetchBackendJson<CommissionWithRelation>(
+    `/api/admin/commissions/${commissionId}/status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    },
+    "Could not update commission status."
+  );
+  return normalizeCommissionRow(updated);
 }
 
 export async function exportPreviousMonthOpenCommissionsCsv(): Promise<CsvExportResult> {

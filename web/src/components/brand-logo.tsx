@@ -4,12 +4,14 @@ type BrandLogoProps = {
   className?: string;
   subtitle?: string;
   compact?: boolean;
+  showText?: boolean;
 };
 
 export function BrandLogo({
   className = "",
   subtitle = "GoProvisions",
   compact = false,
+  showText = true,
 }: BrandLogoProps) {
   const imageWidth = compact ? 140 : 180;
   const imageHeight = compact ? 54 : 68;
@@ -23,7 +25,7 @@ export function BrandLogo({
         height={imageHeight}
         priority
       />
-      {!compact ? (
+      {!compact && showText ? (
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-white">
             Provisions Portal
