@@ -55,6 +55,9 @@ export type CsvExportResult = {
   rowCount: number;
 };
 
+const SESSION_HINT_COOKIE = "gp_has_session";
+const ROLE_HINT_COOKIE = "gp_user_role";
+
 function toErrorMessage(error: unknown): string {
   if (error instanceof AuthError) {
     return error.message;
@@ -65,10 +68,43 @@ function toErrorMessage(error: unknown): string {
   return "Unexpected error. Please try again.";
 }
 
+function setCookie(name: string, value: string): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.cookie = `${name}=${encodeURIComponent(value)}; Path=/; SameSite=Lax`;
+}
+
+function clearCookie(name: string): void {
+  if (typeof document === "undefined") {
+    return;
+  }
+  document.cookie = `${name}=; Path=/; Max-Age=0; SameSite=Lax`;
+}
+
+function markSessionHint(isAuthenticated: boolean): void {
+  if (isAuthenticated) {
+    setCookie(SESSION_HINT_COOKIE, "1");
+    return;
+  }
+  clearCookie(SESSION_HINT_COOKIE);
+  clearCookie(ROLE_HINT_COOKIE);
+}
+
+function markRoleHint(role: EmployeeRole): void {
+  setCookie(ROLE_HINT_COOKIE, role);
+}
+
 function getApiBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_API_URL?.trim();
   if (configured) {
     return configured.replace(/\/+$/, "");
+  }
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:8000";
+    }
   }
   if (typeof window !== "undefined" && window.location.origin) {
     return window.location.origin;
@@ -96,6 +132,51 @@ function normalizeCommissionRow(row: CommissionWithRelation): Commission {
   };
 }
 
+async function getAccessTokenOrThrow(): Promise<string> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) {
+    markSessionHint(false);
+    throw new Error("Session missing. Please sign in again.");
+  }
+  markSessionHint(true);
+  return data.session.access_token;
+}
+
+type BackendErrorResponse = { message?: string };
+
+async function parseBackendError(response: Response, fallback: string): Promise<Error> {
+  let message = fallback;
+  try {
+    const errorBody = (await response.json()) as BackendErrorResponse;
+    if (errorBody.message) {
+      message = errorBody.message;
+    }
+  } catch {
+    // Ignore invalid error payloads from backend.
+  }
+  return new Error(message);
+}
+
+async function fetchBackendJson<T>(
+  path: string,
+  init: RequestInit,
+  fallbackErrorMessage: string
+): Promise<T> {
+  const token = await getAccessTokenOrThrow();
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${token}`,
+      ...(init.headers ?? {}),
+    },
+  });
+  if (!response.ok) {
+    throw await parseBackendError(response, fallbackErrorMessage);
+  }
+  return (await response.json()) as T;
+}
+
 export async function signInWithEmailPassword(
   email: string,
   password: string,
@@ -105,6 +186,7 @@ export async function signInWithEmailPassword(
   if (error || !data.user) {
     throw new Error(toErrorMessage(error ?? "Login failed"));
   }
+  markSessionHint(true);
   return data.user;
 }
 
@@ -131,6 +213,7 @@ export async function signOut(): Promise<void> {
   if (error) {
     throw new Error(toErrorMessage(error));
   }
+  markSessionHint(false);
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -139,6 +222,7 @@ export async function getCurrentUser(): Promise<User | null> {
   if (error) {
     throw new Error(toErrorMessage(error));
   }
+  markSessionHint(Boolean(data.user));
   return data.user;
 }
 
@@ -155,24 +239,17 @@ export async function getEmployeeProfileByAuthUserId(
   if (error || !data) {
     throw new Error("Employee profile not found. Please contact an admin.");
   }
-
+  markRoleHint(data.role);
   return data;
 }
 
 export async function getCommissionsForAdmin(): Promise<Commission[]> {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("commissions")
-    .select(
-      "id, employee_id, reason, description, revenue_amount, commission_rate, commission_amount, status, source, source_url, created_at, employee:employees(id,name,email)",
-    )
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  if (error) {
-    throw new Error("Could not load commissions for admin.");
-  }
-  return ((data ?? []) as CommissionWithRelation[]).map(normalizeCommissionRow);
+  const data = await fetchBackendJson<CommissionWithRelation[]>(
+    "/api/admin/commissions",
+    { method: "GET" },
+    "Could not load commissions for admin."
+  );
+  return data.map(normalizeCommissionRow);
 }
 
 export async function getCommissionsForEmployee(
@@ -195,17 +272,11 @@ export async function getCommissionsForEmployee(
 }
 
 export async function getEmployees(): Promise<EmployeeProfile[]> {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("employees")
-    .select("id, auth_user_id, name, email, role, active")
-    .order("name", { ascending: true })
-    .limit(500);
-
-  if (error) {
-    throw new Error("Could not load employees.");
-  }
-  return data ?? [];
+  return fetchBackendJson<EmployeeProfile[]>(
+    "/api/admin/employees",
+    { method: "GET" },
+    "Could not load employees."
+  );
 }
 
 export async function createEmployee(input: CreateEmployeeInput): Promise<EmployeeProfile> {
@@ -226,48 +297,34 @@ export async function updateEmployee(
   employeeId: string,
   input: UpdateEmployeeInput
 ): Promise<EmployeeProfile> {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase
-    .from("employees")
-    .update(input)
-    .eq("id", employeeId)
-    .select("id, auth_user_id, name, email, role, active")
-    .single();
-
-  if (error || !data) {
-    throw new Error("Could not update employee.");
-  }
-  return data;
+  return fetchBackendJson<EmployeeProfile>(
+    `/api/admin/employees/${employeeId}`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+    },
+    "Could not update employee."
+  );
 }
 
 export async function exportPreviousMonthOpenCommissionsCsv(): Promise<CsvExportResult> {
-  const supabase = getSupabaseBrowserClient();
-  const { data, error } = await supabase.auth.getSession();
-  if (error || !data.session?.access_token) {
-    throw new Error("Session missing. Please sign in again.");
-  }
+  const token = await getAccessTokenOrThrow();
 
   const response = await fetch(
     `${getApiBaseUrl()}/api/admin/commissions/export-previous-month`,
     {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${data.session.access_token}`,
+        Authorization: `Bearer ${token}`,
       },
     }
   );
 
   if (!response.ok) {
-    let message = "CSV export failed.";
-    try {
-      const errorBody = (await response.json()) as { message?: string };
-      if (errorBody.message) {
-        message = errorBody.message;
-      }
-    } catch {
-      // Keep generic message when backend does not return JSON.
-    }
-    throw new Error(message);
+    throw await parseBackendError(response, "CSV export failed.");
   }
 
   return {

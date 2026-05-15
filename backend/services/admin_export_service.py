@@ -64,10 +64,16 @@ class AdminExportService:
             .select(
                 "id, employee_id, revenue_amount, commission_rate, commission_amount, reason, description, source_url, status, source, external_id, created_at, paid_at, employee:employees(name,email)"
             )
-            .order("created_at", desc=False)
             .execute()
         )
-        return response.data or []
+        rows = response.data or []
+        return sorted(
+            rows,
+            key=lambda row: (
+                row.get("created_at") or "",
+                str(row.get("id") or ""),
+            ),
+        )
 
     @staticmethod
     def _to_csv(rows: list[dict]) -> bytes:

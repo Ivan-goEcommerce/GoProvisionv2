@@ -72,7 +72,24 @@ export default function AdminPage() {
         setCommissions(rows);
         setEmployees(employeeRows);
       } catch (requestError) {
-        setError(requestError instanceof Error ? requestError.message : "Could not load admin dashboard.");
+        if (requestError instanceof Error) {
+          if (requestError.message === "Admin access required.") {
+            router.replace("/employee");
+            return;
+          }
+          if (
+            requestError.message === "Missing Authorization header." ||
+            requestError.message === "Invalid access token." ||
+            requestError.message === "Session missing. Please sign in again."
+          ) {
+            await signOut();
+            router.replace("/");
+            return;
+          }
+          setError(requestError.message);
+          return;
+        }
+        setError("Could not load admin dashboard.");
       } finally {
         setIsLoading(false);
       }

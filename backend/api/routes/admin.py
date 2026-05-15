@@ -9,7 +9,9 @@ from fastapi import APIRouter, Header
 from fastapi.responses import Response
 
 from backend.core.errors import AppError
+from backend.schemas.admin import AdminCommission, AdminEmployee, UpdateEmployeeRequest
 from backend.services.admin_export_service import AdminExportService
+from backend.services.admin_service import AdminService
 from backend.services.supabase_client import get_service_supabase
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,41 @@ def _require_admin_actor(authorization_header: str | None) -> dict:
             status_code=403,
         )
     return profile
+
+
+@router.get("/commissions", response_model=list[AdminCommission])
+def list_commissions_for_admin(
+    authorization: Annotated[str | None, Header()] = None,
+) -> list[AdminCommission]:
+    """Return commissions for authenticated admins."""
+    _require_admin_actor(authorization)
+    admin_service = AdminService(get_service_supabase())
+    return [AdminCommission.model_validate(row) for row in admin_service.list_commissions()]
+
+
+@router.get("/employees", response_model=list[AdminEmployee])
+def list_employees_for_admin(
+    authorization: Annotated[str | None, Header()] = None,
+) -> list[AdminEmployee]:
+    """Return employee catalog for authenticated admins."""
+    _require_admin_actor(authorization)
+    admin_service = AdminService(get_service_supabase())
+    return [AdminEmployee.model_validate(row) for row in admin_service.list_employees()]
+
+
+@router.patch("/employees/{employee_id}", response_model=AdminEmployee)
+def update_employee_as_admin(
+    employee_id: str,
+    payload: UpdateEmployeeRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> AdminEmployee:
+    """Update employee role/active status as authenticated admin."""
+    _require_admin_actor(authorization)
+    admin_service = AdminService(get_service_supabase())
+    updated = admin_service.update_employee(
+        employee_id=employee_id, role=payload.role, active=payload.active
+    )
+    return AdminEmployee.model_validate(updated)
 
 
 @router.post("/commissions/export-previous-month")
