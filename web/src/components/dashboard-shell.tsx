@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { BrandLogo } from "@/components/brand-logo";
 
 type DashboardShellProps = {
   title: string;
@@ -18,13 +19,7 @@ export function DashboardShell({
   return (
     <main className="app-page">
       <div className="dashboard-nav">
-        <div className="logo-slot">
-          <span className="logo-badge">go</span>
-          <div>
-            <p className="text-sm font-semibold text-white">go!commerce style</p>
-            <p className="text-xs text-[var(--brand-text-muted)]">Platz fuer dein Logo</p>
-          </div>
-        </div>
+        <BrandLogo compact subtitle="Admin und Mitarbeiter Bereich" />
         <p className="text-xs text-[var(--brand-text-muted)]">Provisionen Dashboard</p>
       </div>
 

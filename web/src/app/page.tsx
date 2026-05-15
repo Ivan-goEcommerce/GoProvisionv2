@@ -10,6 +10,7 @@ import {
   signInWithEmailPassword,
   signOut,
 } from "@/lib/auth";
+import { BrandLogo } from "@/components/brand-logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -97,13 +98,7 @@ export default function LoginPage() {
     <main className="auth-shell">
       <div className="auth-card">
         <div className="mb-4 flex items-center justify-between">
-          <div className="logo-slot">
-            <span className="logo-badge">go</span>
-            <div>
-              <p className="text-sm font-semibold text-white">go!commerce style</p>
-              <p className="text-xs text-[var(--brand-text-muted)]">Platz fuer Logo</p>
-            </div>
-          </div>
+          <BrandLogo subtitle="Login fuer dein Team" />
         </div>
 
         <h1 className="auth-title">GoProvisions Login</h1>
