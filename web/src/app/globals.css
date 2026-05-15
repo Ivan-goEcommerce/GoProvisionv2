@@ -1,8 +1,20 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #071722;
+  --foreground: #e8f1f6;
+  --surface: #0f2738;
+  --surface-muted: #123248;
+  --border: #1f4b63;
+  --brand-primary: #1f5c78;
+  --brand-primary-hover: #277091;
+  --brand-accent: #ea750f;
+  --brand-accent-hover: #ff891e;
+  --brand-text-muted: #8eb3c8;
+  --danger-bg: #432024;
+  --danger-text: #ffc4c4;
+  --success-bg: #133429;
+  --success-text: #9ce6be;
 }
 
 @theme inline {
@@ -12,15 +24,190 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+body {
+  background:
+    radial-gradient(circle at 0% 0%, rgba(234, 117, 15, 0.18), transparent 34%),
+    radial-gradient(circle at 100% 20%, rgba(31, 92, 120, 0.22), transparent 42%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.app-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 76rem;
+  min-height: 100vh;
+  padding: 1.5rem;
+}
+
+.brand-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 0.9rem;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.35);
+}
+
+.brand-card-muted {
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  border-radius: 0.75rem;
+}
+
+.auth-shell {
+  margin-inline: auto;
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 28rem;
+  align-items: center;
+  padding: 1.5rem;
+}
+
+.auth-card {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(165deg, #112f43 0%, #0d2434 100%);
+  padding: 1.5rem;
+  box-shadow: 0 22px 40px rgba(0, 0, 0, 0.42);
+}
+
+.auth-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.auth-subtitle {
+  margin-top: 0.5rem;
+  color: var(--brand-text-muted);
+  font-size: 0.9rem;
+}
+
+.brand-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  color: #eaf3f8;
+  background: #0b1d2a;
+}
+
+.brand-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--brand-primary) 30%, white);
+  outline-offset: 1px;
+}
+
+.brand-button-primary {
+  background: var(--brand-primary);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.brand-button-primary:hover {
+  background: var(--brand-primary-hover);
+}
+
+.brand-button-accent {
+  background: var(--brand-accent);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+
+.brand-button-accent:hover {
+  background: var(--brand-accent-hover);
+}
+
+.brand-button-secondary {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.04);
+  color: #e5f0f7;
+  border-radius: 0.5rem;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.brand-error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.brand-success {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.logo-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid #25637f;
+  background: rgba(7, 23, 34, 0.75);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem 0.4rem 0.45rem;
+}
+
+.logo-badge {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--brand-accent);
+  color: #fff;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dashboard-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 0.95rem;
+  padding: 0.9rem 1.2rem;
+  background: linear-gradient(145deg, #12334a 0%, #0d2536 100%);
+  margin-bottom: 1rem;
+}
+
+.metric-card {
+  border: 1px solid var(--border);
+  background: linear-gradient(175deg, rgba(31, 92, 120, 0.24) 0%, rgba(15, 39, 56, 0.92) 100%);
+  border-radius: 0.75rem;
+  padding: 0.8rem;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.data-table thead tr {
+  border-bottom: 1px solid var(--border);
+  color: #9ec3d8;
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid rgba(31, 75, 99, 0.55);
+  color: #d9e8f1;
+}
+
+.field-label {
+  margin-bottom: 0.25rem;
+  display: block;
+  font-size: 0.8rem;
+  color: var(--brand-text-muted);
 }

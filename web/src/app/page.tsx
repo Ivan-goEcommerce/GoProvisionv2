@@ -94,18 +94,28 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-      <div className="w-full rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-zinc-900">GoProvisions Login</h1>
-        <p className="mt-2 text-sm text-zinc-600">
-          Anmeldung ueber Supabase Auth mit E-Mail, Passwort und Passwort-Reset.
+    <main className="auth-shell">
+      <div className="auth-card">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="logo-slot">
+            <span className="logo-badge">go</span>
+            <div>
+              <p className="text-sm font-semibold text-white">go!commerce style</p>
+              <p className="text-xs text-[var(--brand-text-muted)]">Platz fuer Logo</p>
+            </div>
+          </div>
+        </div>
+
+        <h1 className="auth-title">GoProvisions Login</h1>
+        <p className="auth-subtitle">
+          Anmeldung ueber Supabase Auth mit E-Mail, Passwort und Passwort-Reset im neuen Markenstil.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
-            <label className="mb-1 block text-sm text-zinc-700">E-Mail</label>
+            <label className="field-label">E-Mail</label>
             <input
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="brand-input"
               type="email"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
@@ -113,9 +123,9 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-zinc-700">Passwort</label>
+            <label className="field-label">Passwort</label>
             <input
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="brand-input"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -123,20 +133,20 @@ export default function LoginPage() {
             />
           </div>
           {error ? (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+            <p className="brand-error rounded-md px-3 py-2 text-sm">{error}</p>
           ) : null}
           {info ? (
-            <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{info}</p>
+            <p className="brand-success rounded-md px-3 py-2 text-sm">{info}</p>
           ) : null}
           <button
-            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="brand-button-accent w-full disabled:opacity-60"
             disabled={isLoading}
             type="submit"
           >
             {isLoading ? "Anmeldung..." : "Anmelden"}
           </button>
           <button
-            className="w-full rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 disabled:opacity-60"
+            className="brand-button-secondary w-full disabled:opacity-60"
             disabled={isLoading}
             onClick={onPasswordRecovery}
             type="button"

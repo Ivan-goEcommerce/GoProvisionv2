@@ -198,7 +198,7 @@ export default function AdminPage() {
   };
 
   if (isLoading) {
-    return <main className="p-6 text-sm text-zinc-600">Loading admin dashboard...</main>;
+    return <main className="p-6 text-sm text-[var(--brand-text-muted)]">Loading admin dashboard...</main>;
   }
 
   return (
@@ -208,7 +208,7 @@ export default function AdminPage() {
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <button
-            className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white hover:bg-zinc-800 disabled:opacity-60"
+            className="brand-button-accent disabled:opacity-60"
             disabled={isExporting}
             onClick={onExportOpenPreviousMonth}
             type="button"
@@ -218,7 +218,7 @@ export default function AdminPage() {
               : "CSV Export (open Vormonat -> paid)"}
           </button>
           <button
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100"
+            className="brand-button-secondary"
             onClick={onLogout}
             type="button"
           >
@@ -228,24 +228,24 @@ export default function AdminPage() {
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Gesamt open</p>
-          <p className="text-lg font-semibold text-zinc-900">{formatEuro(totals.open)}</p>
+        <div className="metric-card">
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt open</p>
+          <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Gesamt paid</p>
-          <p className="text-lg font-semibold text-zinc-900">{formatEuro(totals.paid)}</p>
+        <div className="metric-card">
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt paid</p>
+          <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
       </div>
 
-      {error ? <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
-      {info ? <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{info}</p> : null}
+      {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}
+      {info ? <p className="brand-success mb-4 rounded-md px-3 py-2 text-sm">{info}</p> : null}
 
       <div className="mb-4 flex flex-wrap gap-3">
-        <label className="text-sm text-zinc-700">
+        <label className="text-sm text-[var(--brand-text-muted)]">
           Mitarbeiter
           <select
-            className="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="brand-input mt-1 block"
             onChange={(event) => setEmployeeFilter(event.target.value)}
             value={employeeFilter}
           >
@@ -257,19 +257,19 @@ export default function AdminPage() {
             ))}
           </select>
         </label>
-        <label className="text-sm text-zinc-700">
+        <label className="text-sm text-[var(--brand-text-muted)]">
           Monat
           <input
-            className="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="brand-input mt-1 block"
             onChange={(event) => setMonthFilter(event.target.value)}
             type="month"
             value={monthFilter}
           />
         </label>
-        <label className="text-sm text-zinc-700">
+        <label className="text-sm text-[var(--brand-text-muted)]">
           Status
           <select
-            className="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="brand-input mt-1 block"
             onChange={(event) =>
               setStatusFilter(event.target.value as "all" | "open" | "paid")
             }
@@ -283,9 +283,9 @@ export default function AdminPage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[900px] border-collapse text-sm">
+        <table className="data-table min-w-[900px]">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-600">
+            <tr className="text-left">
               <th className="py-2 pr-4">Datum</th>
               <th className="py-2 pr-4">Mitarbeiter</th>
               <th className="py-2 pr-4">Grund</th>
@@ -297,7 +297,7 @@ export default function AdminPage() {
           </thead>
           <tbody>
             {filteredCommissions.map((row) => (
-              <tr className="border-b border-zinc-100 text-zinc-800" key={row.id}>
+              <tr key={row.id}>
                 <td className="py-2 pr-4">{new Date(row.created_at).toLocaleDateString("de-DE")}</td>
                 <td className="py-2 pr-4">{row.employee?.name ?? row.employee_id}</td>
                 <td className="py-2 pr-4">{row.reason}</td>
@@ -309,7 +309,7 @@ export default function AdminPage() {
             ))}
             {filteredCommissions.length === 0 ? (
               <tr>
-                <td className="py-4 text-zinc-500" colSpan={7}>
+                <td className="py-4 text-[var(--brand-text-muted)]" colSpan={7}>
                   Keine Provisionen gefunden.
                 </td>
               </tr>
@@ -318,16 +318,16 @@ export default function AdminPage() {
         </table>
       </div>
 
-      <div className="mt-8 border-t border-zinc-200 pt-6">
-        <h2 className="text-lg font-semibold text-zinc-900">Mitarbeiterverwaltung</h2>
-        <p className="mt-1 text-sm text-zinc-600">
+      <div className="mt-8 border-t border-[var(--border)] pt-6">
+        <h2 className="text-lg font-semibold text-white">Mitarbeiterverwaltung</h2>
+        <p className="mt-1 text-sm text-[var(--brand-text-muted)]">
           Bestehende Rollen und Aktiv-Status verwalten.
         </p>
 
         <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-sm">
+          <table className="data-table min-w-[760px]">
             <thead>
-              <tr className="border-b border-zinc-200 text-left text-zinc-600">
+              <tr className="text-left">
                 <th className="py-2 pr-4">Name</th>
                 <th className="py-2 pr-4">E-Mail</th>
                 <th className="py-2 pr-4">Rolle</th>
@@ -337,12 +337,12 @@ export default function AdminPage() {
             </thead>
             <tbody>
               {employees.map((employee) => (
-                <tr className="border-b border-zinc-100 text-zinc-800" key={employee.id}>
+                <tr key={employee.id}>
                   <td className="py-2 pr-4">{employee.name}</td>
                   <td className="py-2 pr-4">{employee.email}</td>
                   <td className="py-2 pr-4">
                     <select
-                      className="rounded-md border border-zinc-300 px-2 py-1 text-sm"
+                      className="brand-input px-2 py-1 text-sm"
                       onChange={(event) =>
                         updateLocalEmployee(employee.id, {
                           role: event.target.value as "admin" | "employee",
@@ -365,7 +365,7 @@ export default function AdminPage() {
                   </td>
                   <td className="py-2 pr-4">
                     <button
-                      className="rounded-md border border-zinc-300 px-3 py-1 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-60"
+                      className="brand-button-secondary px-3 py-1 disabled:opacity-60"
                       disabled={savingEmployeeId === employee.id}
                       onClick={() => onSaveEmployee(employee)}
                       type="button"
@@ -377,7 +377,7 @@ export default function AdminPage() {
               ))}
               {employees.length === 0 ? (
                 <tr>
-                  <td className="py-4 text-zinc-500" colSpan={5}>
+                  <td className="py-4 text-[var(--brand-text-muted)]" colSpan={5}>
                     Keine Mitarbeiter gefunden.
                   </td>
                 </tr>

@@ -45,18 +45,18 @@ export default function ResetPasswordPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-6">
-      <div className="w-full rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-semibold text-zinc-900">Neues Passwort setzen</h1>
-        <p className="mt-2 text-sm text-zinc-600">
+    <main className="auth-shell">
+      <div className="auth-card">
+        <h1 className="auth-title">Neues Passwort setzen</h1>
+        <p className="auth-subtitle">
           Verwende ein sicheres Passwort. Danach wirst du zur Anmeldung geleitet.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
           <div>
-            <label className="mb-1 block text-sm text-zinc-700">Neues Passwort</label>
+            <label className="field-label">Neues Passwort</label>
             <input
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="brand-input"
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -64,11 +64,11 @@ export default function ResetPasswordPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm text-zinc-700">
+            <label className="field-label">
               Neues Passwort bestaetigen
             </label>
             <input
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm"
+              className="brand-input"
               type="password"
               value={passwordConfirm}
               onChange={(event) => setPasswordConfirm(event.target.value)}
@@ -77,14 +77,14 @@ export default function ResetPasswordPage() {
           </div>
 
           {error ? (
-            <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+            <p className="brand-error rounded-md px-3 py-2 text-sm">{error}</p>
           ) : null}
           {info ? (
-            <p className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-700">{info}</p>
+            <p className="brand-success rounded-md px-3 py-2 text-sm">{info}</p>
           ) : null}
 
           <button
-            className="w-full rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="brand-button-accent w-full disabled:opacity-60"
             disabled={isLoading}
             type="submit"
           >

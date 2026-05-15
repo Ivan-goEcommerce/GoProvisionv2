@@ -105,7 +105,7 @@ export default function EmployeePage() {
   };
 
   if (isLoading) {
-    return <main className="p-6 text-sm text-zinc-600">Loading employee dashboard...</main>;
+    return <main className="p-6 text-sm text-[var(--brand-text-muted)]">Loading employee dashboard...</main>;
   }
 
   return (
@@ -114,7 +114,7 @@ export default function EmployeePage() {
       subtitle={`Willkommen ${employeeName || "Mitarbeiter"}`}
       actions={
         <button
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-700 hover:bg-zinc-100"
+          className="brand-button-secondary"
           onClick={onLogout}
           type="button"
         >
@@ -123,23 +123,23 @@ export default function EmployeePage() {
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Gesamt open</p>
-          <p className="text-lg font-semibold text-zinc-900">{formatEuro(totals.open)}</p>
+        <div className="metric-card">
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt open</p>
+          <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-3">
-          <p className="text-xs text-zinc-500">Gesamt paid</p>
-          <p className="text-lg font-semibold text-zinc-900">{formatEuro(totals.paid)}</p>
+        <div className="metric-card">
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt paid</p>
+          <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
       </div>
 
-      {error ? <p className="mb-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
+      {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}
 
       <div className="mb-4 flex flex-wrap gap-3">
-        <label className="text-sm text-zinc-700">
+        <label className="text-sm text-[var(--brand-text-muted)]">
           Status
           <select
-            className="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="brand-input mt-1 block"
             onChange={(event) =>
               setStatusFilter(event.target.value as "all" | "open" | "paid")
             }
@@ -150,10 +150,10 @@ export default function EmployeePage() {
             <option value="paid">Paid</option>
           </select>
         </label>
-        <label className="text-sm text-zinc-700">
+        <label className="text-sm text-[var(--brand-text-muted)]">
           Monat (optional)
           <input
-            className="mt-1 block rounded-md border border-zinc-300 px-3 py-2 text-sm"
+            className="brand-input mt-1 block"
             onChange={(event) => setMonthFilter(event.target.value)}
             type="month"
             value={monthFilter}
@@ -162,9 +162,9 @@ export default function EmployeePage() {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[780px] border-collapse text-sm">
+        <table className="data-table min-w-[780px]">
           <thead>
-            <tr className="border-b border-zinc-200 text-left text-zinc-600">
+            <tr className="text-left">
               <th className="py-2 pr-4">Datum</th>
               <th className="py-2 pr-4">Grund</th>
               <th className="py-2 pr-4">Umsatz</th>
@@ -175,7 +175,7 @@ export default function EmployeePage() {
           </thead>
           <tbody>
             {filteredCommissions.map((row) => (
-              <tr className="border-b border-zinc-100 text-zinc-800" key={row.id}>
+              <tr key={row.id}>
                 <td className="py-2 pr-4">{new Date(row.created_at).toLocaleDateString("de-DE")}</td>
                 <td className="py-2 pr-4">{row.reason}</td>
                 <td className="py-2 pr-4">{formatEuro(row.revenue_amount)}</td>
@@ -186,7 +186,7 @@ export default function EmployeePage() {
             ))}
             {filteredCommissions.length === 0 ? (
               <tr>
-                <td className="py-4 text-zinc-500" colSpan={6}>
+                <td className="py-4 text-[var(--brand-text-muted)]" colSpan={6}>
                   Keine Provisionen vorhanden.
                 </td>
               </tr>
