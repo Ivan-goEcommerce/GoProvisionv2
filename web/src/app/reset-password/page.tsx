@@ -23,7 +23,7 @@ export default function ResetPasswordPage() {
       return;
     }
     if (password !== passwordConfirm) {
-      setError("Passwort und Bestaetigung stimmen nicht ueberein.");
+      setError("Passwort und Bestätigung stimmen nicht überein.");
       return;
     }
 
@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
     try {
       await updatePassword(password);
       await signOut();
-      setInfo("Passwort erfolgreich geaendert. Bitte neu einloggen.");
+      setInfo("Passwort erfolgreich geändert. Bitte neu einloggen.");
       setTimeout(() => router.replace("/"), 1200);
     } catch (requestError) {
       setError(
@@ -65,7 +65,7 @@ export default function ResetPasswordPage() {
           </div>
           <div>
             <label className="field-label">
-              Neues Passwort bestaetigen
+              Neues Passwort bestätigen
             </label>
             <input
               className="brand-input"
