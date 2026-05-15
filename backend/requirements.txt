@@ -2,5 +2,6 @@ fastapi
 uvicorn
 supabase
 pydantic-settings
+email-validator
 python-dotenv
 python-json-logger
