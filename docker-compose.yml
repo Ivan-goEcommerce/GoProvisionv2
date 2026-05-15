@@ -15,7 +15,7 @@ services:
     command: >
       /bin/sh -c '
       cert_dir="/etc/letsencrypt/live/goprovision.goecloud.eu";
-      if [ -f "$cert_dir/fullchain.pem" ] && [ -f "$cert_dir/privkey.pem" ]; then
+      if [ -f "$$cert_dir/fullchain.pem" ] && [ -f "$$cert_dir/privkey.pem" ]; then
         cp /etc/nginx/templates/nginx.https.conf /etc/nginx/nginx.conf;
         echo "[reverse-proxy] TLS certificate found. Starting with HTTPS.";
       else
