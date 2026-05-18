@@ -11,8 +11,17 @@ from supabase import Client
 
 
 @dataclass(frozen=True)
+class ExportWindow:
+    """UTC time window for previous calendar month."""
+
+    start_iso: str
+    end_iso: str
+    label: str
+
+
+@dataclass(frozen=True)
 class ExportResult:
-    """Result of exporting and marking commissions as paid."""
+    """Result of exporting commissions for tax advisor workflows."""
 
     csv_bytes: bytes
     filename: str
@@ -22,7 +31,7 @@ class ExportResult:
 
 
 class AdminExportService:
-    """Exports all commissions and marks pending commissions as paid."""
+    """Exports previous-month pending commissions with paid projection in CSV."""
 
     PENDING_STATUSES = ("open", "in_progress")
 
@@ -30,36 +39,34 @@ class AdminExportService:
         self.supabase = supabase_client
 
     def export_open_commissions_for_previous_month(self) -> ExportResult:
-        """Export all commissions and mark non-cancelled pending rows as paid."""
-        self._mark_pending_as_paid()
-        all_rows = self._list_all_commissions()
-        csv_payload = self._to_csv(all_rows)
-        filename = f"commissions_export_all_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
+        """Export previous-month open commissions and project them as paid in CSV."""
+        window = self._build_previous_month_window()
+        rows = self._list_pending_for_window(window)
+        exported_rows = self._project_rows_as_paid(rows)
+        csv_payload = self._to_csv(exported_rows)
+        filename = f"commissions_export_{window.label}.csv"
         empty_reason = None
-        if not all_rows:
-            empty_reason = "Keine Provisionen gefunden."
+        if not exported_rows:
+            empty_reason = (
+                f"Keine offenen Provisionen im Vormonat ({window.label}) gefunden."
+            )
         return ExportResult(
             csv_bytes=csv_payload,
             filename=filename,
-            row_count=len(all_rows),
-            month_label="all",
+            row_count=len(exported_rows),
+            month_label=window.label,
             empty_reason=empty_reason,
         )
 
-    def _mark_pending_as_paid(self) -> None:
-        self.supabase.table("commissions").update(
-            {
-                "status": "paid",
-                "paid_at": datetime.now(UTC).isoformat(),
-            }
-        ).in_("status", self.PENDING_STATUSES).execute()
-
-    def _list_all_commissions(self) -> list[dict]:
+    def _list_pending_for_window(self, window: ExportWindow) -> list[dict]:
         response = (
             self.supabase.table("commissions")
             .select(
                 "id, employee_id, revenue_amount, commission_rate, commission_amount, reason, description, source_url, status, source, external_id, created_at, paid_at, employee:employees(name,email)"
             )
+            .in_("status", self.PENDING_STATUSES)
+            .gte("created_at", window.start_iso)
+            .lt("created_at", window.end_iso)
             .execute()
         )
         rows = response.data or []
@@ -69,6 +76,38 @@ class AdminExportService:
                 row.get("created_at") or "",
                 str(row.get("id") or ""),
             ),
+        )
+
+    @staticmethod
+    def _project_rows_as_paid(rows: list[dict]) -> list[dict]:
+        paid_at_iso = datetime.now(UTC).isoformat()
+        projected_rows: list[dict] = []
+        for row in rows:
+            projected_rows.append(
+                {
+                    **row,
+                    "status": "paid",
+                    "paid_at": paid_at_iso,
+                }
+            )
+        return projected_rows
+
+    @staticmethod
+    def _build_previous_month_window() -> ExportWindow:
+        now = datetime.now(UTC)
+        current_month_start = datetime(now.year, now.month, 1, tzinfo=UTC)
+        if current_month_start.month == 1:
+            previous_month_start = datetime(
+                current_month_start.year - 1, 12, 1, tzinfo=UTC
+            )
+        else:
+            previous_month_start = datetime(
+                current_month_start.year, current_month_start.month - 1, 1, tzinfo=UTC
+            )
+        return ExportWindow(
+            start_iso=previous_month_start.isoformat(),
+            end_iso=current_month_start.isoformat(),
+            label=previous_month_start.strftime("%Y-%m"),
         )
 
     @staticmethod

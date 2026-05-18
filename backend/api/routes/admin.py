@@ -131,7 +131,7 @@ def update_employee_as_admin(
 def export_previous_month_open_commissions(
     authorization: Annotated[str | None, Header()] = None,
 ) -> Response:
-    """Export all commissions to CSV and mark them paid."""
+    """Export previous-month pending commissions with paid projection in CSV."""
     actor = _require_admin_actor(authorization)
 
     export_service = AdminExportService(get_service_supabase())
