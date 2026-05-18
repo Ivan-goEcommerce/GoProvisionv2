@@ -343,7 +343,9 @@ export async function getCommissionsForEmployee(
     .limit(500);
 
   if (error) {
-    throw new Error("Could not load commissions for employee.");
+    throw new Error(
+      `Could not load commissions for employee: ${error.message}`
+    );
   }
   return data ?? [];
 }
