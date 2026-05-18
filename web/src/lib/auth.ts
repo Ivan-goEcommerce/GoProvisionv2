@@ -227,7 +227,7 @@ function cleanupRecoveryUrlParameters(url: URL): void {
 
 export async function ensurePasswordRecoverySession(): Promise<void> {
   if (typeof window === "undefined") {
-    throw new Error("Passwort-Reset ist nur im Browser verf\u00FCgbar.");
+    throw new Error("Passwort-Reset ist nur im Browser verfügbar.");
   }
 
   const supabase = getSupabaseBrowserClient();
@@ -260,7 +260,7 @@ export async function ensurePasswordRecoverySession(): Promise<void> {
     throw new Error(toErrorMessage(error));
   }
   if (!data.session) {
-    throw new Error("Reset-Link ung\u00FCltig oder abgelaufen. Bitte Passwort-Reset erneut anfordern.");
+    throw new Error("Reset-Link ungültig oder abgelaufen. Bitte Passwort-Reset erneut anfordern.");
   }
 }
 

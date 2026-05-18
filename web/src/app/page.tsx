@@ -103,7 +103,7 @@ export default function LoginPage() {
 
         <h1 className="auth-title">GoProvisions Login</h1>
         <p className="auth-subtitle">
-          Anmeldung \u00FCber Supabase Auth mit E-Mail, Passwort und Passwort-Reset im neuen Markenstil.
+          Anmeldung über Supabase Auth mit E-Mail, Passwort und Passwort-Reset im neuen Markenstil.
         </p>
 
         <form className="mt-6 space-y-4" onSubmit={onSubmit}>
