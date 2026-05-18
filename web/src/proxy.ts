@@ -8,7 +8,7 @@ function redirectTo(request: NextRequest, pathname: string): NextResponse {
   return NextResponse.redirect(new URL(pathname, request.url));
 }
 
-export function middleware(request: NextRequest): NextResponse {
+export function proxy(request: NextRequest): NextResponse {
   const { pathname } = request.nextUrl;
   const hasSession = request.cookies.get(SESSION_HINT_COOKIE)?.value === "1";
   const role = request.cookies.get(ROLE_HINT_COOKIE)?.value;
