@@ -243,7 +243,7 @@ export default function AdminPage() {
           ? ` Hinweis: ${result.emptyReason}`
           : "";
       setInfo(
-        `CSV exportiert (${result.filename}). ${result.rowCount} offene Provisionen aus dem Vormonat wurden im CSV auf paid mit paid_at=now gesetzt (ohne DB-Änderung).${emptyHint}`,
+        `CSV exportiert (${result.filename}). ${result.rowCount} exportierte Provisionen wurden auf paid gesetzt.${emptyHint}`,
       );
     } catch (requestError) {
       setError(
@@ -273,7 +273,7 @@ export default function AdminPage() {
             type="button"
           >
             <Download size={16} />
-            {isExporting ? "Exportiere..." : "CSV Vormonat exportieren"}
+            {isExporting ? "Exportiere..." : "CSV-Export"}
           </button>
           <button
             className="brand-button-secondary"

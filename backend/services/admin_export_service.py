@@ -31,7 +31,7 @@ class ExportResult:
 
 
 class AdminExportService:
-    """Exports previous-month pending commissions with paid projection in CSV."""
+    """Exports previous-month pending commissions and marks them as paid."""
 
     PENDING_STATUSES = ("open", "in_progress")
 
@@ -39,10 +39,9 @@ class AdminExportService:
         self.supabase = supabase_client
 
     def export_open_commissions_for_previous_month(self) -> ExportResult:
-        """Export previous-month open commissions and project them as paid in CSV."""
+        """Export previous-month pending commissions and mark them paid in DB."""
         window = self._build_previous_month_window()
-        rows = self._list_pending_for_window(window)
-        exported_rows = self._project_rows_as_paid(rows)
+        exported_rows = self._mark_pending_for_window_as_paid(window)
         csv_payload = self._to_csv(exported_rows)
         filename = f"commissions_export_{window.label}.csv"
         empty_reason = None
@@ -58,9 +57,16 @@ class AdminExportService:
             empty_reason=empty_reason,
         )
 
-    def _list_pending_for_window(self, window: ExportWindow) -> list[dict]:
+    def _mark_pending_for_window_as_paid(self, window: ExportWindow) -> list[dict]:
         response = (
             self.supabase.table("commissions")
+            .update(
+                {
+                    "status": "paid",
+                    "paid_at": datetime.now(UTC).isoformat(),
+                },
+                returning="representation",
+            )
             .select(
                 "id, employee_id, revenue_amount, commission_rate, commission_amount, reason, description, source_url, status, source, external_id, created_at, paid_at, employee:employees(name,email)"
             )
@@ -77,20 +83,6 @@ class AdminExportService:
                 str(row.get("id") or ""),
             ),
         )
-
-    @staticmethod
-    def _project_rows_as_paid(rows: list[dict]) -> list[dict]:
-        paid_at_iso = datetime.now(UTC).isoformat()
-        projected_rows: list[dict] = []
-        for row in rows:
-            projected_rows.append(
-                {
-                    **row,
-                    "status": "paid",
-                    "paid_at": paid_at_iso,
-                }
-            )
-        return projected_rows
 
     @staticmethod
     def _build_previous_month_window() -> ExportWindow:
