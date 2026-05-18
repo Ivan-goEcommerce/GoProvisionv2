@@ -5,19 +5,17 @@ from __future__ import annotations
 import logging
 from typing import Annotated
 
-from fastapi import APIRouter, File, Header, UploadFile
+from fastapi import APIRouter, Header
 from fastapi.responses import Response
 
 from backend.core.errors import AppError
 from backend.schemas.admin import (
     AdminCommission,
     AdminEmployee,
-    CommissionImportResponse,
     UpdateCommissionStatusRequest,
     UpdateEmployeeRequest,
 )
 from backend.services.admin_export_service import AdminExportService
-from backend.services.admin_import_service import AdminImportService
 from backend.services.admin_service import AdminService
 from backend.services.supabase_client import get_service_supabase
 
@@ -161,22 +159,3 @@ def export_previous_month_open_commissions(
             "X-Export-Empty-Reason": export_result.empty_reason or "",
         },
     )
-
-
-@router.post("/commissions/import", response_model=CommissionImportResponse)
-async def import_commissions_from_csv(
-    file: UploadFile = File(...),
-    authorization: Annotated[str | None, Header()] = None,
-) -> CommissionImportResponse:
-    """Import commissions from uploaded CSV as authenticated admin."""
-    _require_admin_actor(authorization)
-    csv_bytes = await file.read()
-    if not csv_bytes:
-        raise AppError(
-            error="validation_error",
-            message="Uploaded CSV file is empty.",
-            status_code=422,
-        )
-
-    service = AdminImportService(get_service_supabase())
-    return service.import_commissions_from_csv(csv_bytes)

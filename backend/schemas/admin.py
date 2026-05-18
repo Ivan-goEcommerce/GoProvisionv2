@@ -68,17 +68,3 @@ class UpdateCommissionStatusRequest(BaseModel):
         return normalized
 
 
-class CommissionImportRowError(BaseModel):
-    """Row-level CSV import validation error."""
-
-    row_number: int
-    message: str
-
-
-class CommissionImportResponse(BaseModel):
-    """Admin CSV import execution summary."""
-
-    total_rows: int
-    imported_count: int
-    failed_count: int
-    errors: list[CommissionImportRowError]

@@ -61,18 +61,6 @@ export type CsvExportResult = {
   emptyReason?: string;
 };
 
-export type CommissionImportRowError = {
-  row_number: number;
-  message: string;
-};
-
-export type CommissionImportResult = {
-  total_rows: number;
-  imported_count: number;
-  failed_count: number;
-  errors: CommissionImportRowError[];
-};
-
 const SESSION_HINT_COOKIE = "gp_has_session";
 const ROLE_HINT_COOKIE = "gp_user_role";
 
@@ -434,22 +422,3 @@ export async function exportPreviousMonthOpenCommissionsCsv(): Promise<CsvExport
   };
 }
 
-export async function importCommissionsCsv(file: File): Promise<CommissionImportResult> {
-  const token = await getAccessTokenOrThrow();
-  const formData = new FormData();
-  formData.append("file", file);
-
-  const response = await fetch(`${getApiBaseUrl()}/api/admin/commissions/import`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-    body: formData,
-  });
-
-  if (!response.ok) {
-    throw await parseBackendError(response, "CSV import failed.");
-  }
-
-  return (await response.json()) as CommissionImportResult;
-}
