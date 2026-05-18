@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthError, type User } from "@supabase/supabase-js";
+import { AuthError, type EmailOtpType, type User } from "@supabase/supabase-js";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
@@ -58,6 +58,19 @@ export type CsvExportResult = {
   blob: Blob;
   filename: string;
   rowCount: number;
+  emptyReason?: string;
+};
+
+export type CommissionImportRowError = {
+  row_number: number;
+  message: string;
+};
+
+export type CommissionImportResult = {
+  total_rows: number;
+  imported_count: number;
+  failed_count: number;
+  errors: CommissionImportRowError[];
 };
 
 const SESSION_HINT_COOKIE = "gp_has_session";
@@ -187,6 +200,10 @@ export async function signInWithEmailPassword(
   password: string,
 ): Promise<User> {
   const supabase = getSupabaseBrowserClient();
+  // Always reset local auth state before a new login so account switches
+  // cannot inherit stale session/role hints from a previous user.
+  await supabase.auth.signOut({ scope: "local" });
+  markSessionHint(false);
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error || !data.user) {
     throw new Error(toErrorMessage(error ?? "Login failed"));
@@ -204,6 +221,61 @@ export async function sendPasswordRecoveryEmail(email: string): Promise<void> {
   }
 }
 
+function cleanupRecoveryUrlParameters(url: URL): void {
+  const keysToDelete = ["code", "token_hash", "type", "error", "error_code", "error_description"];
+  let changed = false;
+  for (const key of keysToDelete) {
+    if (url.searchParams.has(key)) {
+      url.searchParams.delete(key);
+      changed = true;
+    }
+  }
+
+  if (changed && typeof window !== "undefined") {
+    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
+}
+
+export async function ensurePasswordRecoverySession(): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("Passwort-Reset ist nur im Browser verf\u00FCgbar.");
+  }
+
+  const supabase = getSupabaseBrowserClient();
+  const url = new URL(window.location.href);
+
+  const code = url.searchParams.get("code");
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      throw new Error(toErrorMessage(error));
+    }
+    cleanupRecoveryUrlParameters(url);
+  } else {
+    const tokenHash = url.searchParams.get("token_hash");
+    const type = url.searchParams.get("type");
+    if (tokenHash && type) {
+      const { error } = await supabase.auth.verifyOtp({
+        type: type as EmailOtpType,
+        token_hash: tokenHash,
+      });
+      if (error) {
+        throw new Error(toErrorMessage(error));
+      }
+      cleanupRecoveryUrlParameters(url);
+    }
+  }
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error) {
+    throw new Error(toErrorMessage(error));
+  }
+  if (!data.session) {
+    throw new Error("Reset-Link ung\u00FCltig oder abgelaufen. Bitte Passwort-Reset erneut anfordern.");
+  }
+}
+
 export async function updatePassword(newPassword: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();
   const { error } = await supabase.auth.updateUser({ password: newPassword });
@@ -214,11 +286,11 @@ export async function updatePassword(newPassword: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   const supabase = getSupabaseBrowserClient();
-  const { error } = await supabase.auth.signOut();
+  const { error } = await supabase.auth.signOut({ scope: "local" });
+  markSessionHint(false);
   if (error) {
     throw new Error(toErrorMessage(error));
   }
-  markSessionHint(false);
 }
 
 export async function getCurrentUser(): Promise<User | null> {
@@ -356,5 +428,26 @@ export async function exportPreviousMonthOpenCommissionsCsv(): Promise<CsvExport
       response.headers.get("content-disposition")
     ),
     rowCount: Number(response.headers.get("x-exported-row-count") ?? "0"),
+    emptyReason: response.headers.get("x-export-empty-reason") || undefined,
   };
+}
+
+export async function importCommissionsCsv(file: File): Promise<CommissionImportResult> {
+  const token = await getAccessTokenOrThrow();
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await fetch(`${getApiBaseUrl()}/api/admin/commissions/import`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw await parseBackendError(response, "CSV import failed.");
+  }
+
+  return (await response.json()) as CommissionImportResult;
 }

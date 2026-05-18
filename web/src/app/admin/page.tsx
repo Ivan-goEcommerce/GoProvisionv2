@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import {
   type Commission,
+  type CommissionImportResult,
   type CommissionStatus,
   type EmployeeProfile,
   exportPreviousMonthOpenCommissionsCsv,
@@ -12,6 +13,7 @@ import {
   getCurrentUser,
   getEmployees,
   getEmployeeProfileByAuthUserId,
+  importCommissionsCsv,
   signOut,
   updateCommissionStatus,
   updateEmployee,
@@ -56,6 +58,9 @@ export default function AdminPage() {
     Record<string, CommissionStatus>
   >({});
   const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<CommissionImportResult | null>(null);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -237,8 +242,12 @@ export default function AdminPage() {
 
       const refreshed = await getCommissionsForAdmin();
       setCommissions(refreshed);
+      const emptyHint =
+        result.rowCount === 0 && result.emptyReason
+          ? ` Hinweis: ${result.emptyReason}`
+          : "";
       setInfo(
-        `CSV exportiert (${result.filename}). ${result.rowCount} Provisionen wurden atomar auf paid gesetzt.`,
+        `CSV exportiert (${result.filename}). ${result.rowCount} Provisionen sind in der CSV. Offene Provisionen wurden auf paid gesetzt, cancelled bleibt unveraendert.${emptyHint}`,
       );
     } catch (requestError) {
       setError(
@@ -248,6 +257,37 @@ export default function AdminPage() {
       );
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const onImportCommissions = async () => {
+    if (!importFile) {
+      setError("Bitte zuerst eine CSV-Datei auswaehlen.");
+      return;
+    }
+
+    setError("");
+    setInfo("");
+    setImportResult(null);
+    setIsImporting(true);
+    try {
+      const result = await importCommissionsCsv(importFile);
+      setImportResult(result);
+
+      const refreshed = await getCommissionsForAdmin();
+      setCommissions(refreshed);
+      setInfo(
+        `CSV import abgeschlossen: ${result.imported_count} importiert, ${result.failed_count} fehlgeschlagen.`,
+      );
+      setImportFile(null);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "CSV Import fehlgeschlagen.",
+      );
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -269,7 +309,7 @@ export default function AdminPage() {
           >
             {isExporting
               ? "Exportiere..."
-              : "CSV Export (open Vormonat -> paid)"}
+              : "CSV Export (alle Provisionen, cancelled bleibt)"}
           </button>
           <button
             className="brand-button-secondary"
@@ -292,8 +332,45 @@ export default function AdminPage() {
         </div>
       </div>
 
+      <div className="mb-6 grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 sm:grid-cols-[1fr_auto] sm:items-end">
+        <label className="text-sm text-[var(--brand-text-muted)]">
+          CSV Import (Provisionen)
+          <input
+            accept=".csv,text/csv"
+            className="brand-input mt-1 block w-full"
+            onChange={(event) => setImportFile(event.target.files?.[0] ?? null)}
+            type="file"
+          />
+        </label>
+        <button
+          className="brand-button-accent disabled:opacity-60"
+          disabled={isImporting || !importFile}
+          onClick={onImportCommissions}
+          type="button"
+        >
+          {isImporting ? "Importiere..." : "CSV Import starten"}
+        </button>
+      </div>
+
       {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}
       {info ? <p className="brand-success mb-4 rounded-md px-3 py-2 text-sm">{info}</p> : null}
+      {importResult ? (
+        <div className="mb-4 rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-sm text-[var(--brand-text)]">
+          <p>
+            Import-Ergebnis: {importResult.imported_count} importiert, {importResult.failed_count} fehlgeschlagen
+            , {importResult.total_rows} verarbeitet.
+          </p>
+          {importResult.errors.length > 0 ? (
+            <p className="mt-2 text-[var(--brand-text-muted)]">
+              Erste Fehler:{" "}
+              {importResult.errors
+                .slice(0, 3)
+                .map((rowError) => `Zeile ${rowError.row_number}: ${rowError.message}`)
+                .join(" | ")}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="mb-4 flex flex-wrap gap-3">
         <label className="text-sm text-[var(--brand-text-muted)]">

@@ -3,7 +3,7 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { signOut, updatePassword } from "@/lib/auth";
+import { ensurePasswordRecoverySession, signOut, updatePassword } from "@/lib/auth";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function ResetPasswordPage() {
 
     setIsLoading(true);
     try {
+      await ensurePasswordRecoverySession();
       await updatePassword(password);
       await signOut();
       setInfo("Passwort erfolgreich ge\u00E4ndert. Bitte neu einloggen.");

@@ -5,3 +5,4 @@ pydantic-settings
 email-validator
 python-dotenv
 python-json-logger
+python-multipart
