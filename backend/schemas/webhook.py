@@ -38,6 +38,14 @@ class CommissionWebhookRequest(BaseModel):
             raise ValueError(f"status must be one of: {allowed}")
         return normalized
 
+    @field_validator("external_id")
+    @classmethod
+    def normalize_external_id(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
+
 
 class CommissionCreated(BaseModel):
     """Commission record returned to webhook caller."""

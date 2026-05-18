@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Download, LogOut } from "lucide-react";
 
 import {
   type Commission,
@@ -271,15 +272,15 @@ export default function AdminPage() {
             onClick={onExportOpenPreviousMonth}
             type="button"
           >
-            {isExporting
-              ? "Exportiere..."
-              : "CSV Export (Vormonat open/in_progress -> paid nur im CSV)"}
+            <Download size={16} />
+            {isExporting ? "Exportiere..." : "CSV Vormonat exportieren"}
           </button>
           <button
             className="brand-button-secondary"
             onClick={onLogout}
             type="button"
           >
+            <LogOut size={16} />
             Logout
           </button>
         </div>

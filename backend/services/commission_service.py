@@ -1,6 +1,7 @@
 """Business logic for commission creation via webhook."""
 
 from decimal import Decimal, ROUND_HALF_UP
+from uuid import uuid4
 
 from postgrest.exceptions import APIError as PostgrestApiError
 from supabase import Client
@@ -51,6 +52,7 @@ class CommissionService:
                 )
 
         commission_rows = []
+        provided_external_id = payload.external_id.strip() if payload.external_id else None
         for participant in participants:
             email = participant.email.lower()
             employee = employee_map[email]
@@ -59,6 +61,7 @@ class CommissionService:
             )
             description = payload.description or payload.reason
             source_url = str(payload.source_url) if payload.source_url else None
+            resolved_external_id = provided_external_id or f"wh_{uuid4().hex}"
 
             commission_rows.append(
                 {
@@ -69,7 +72,7 @@ class CommissionService:
                     "reason": payload.reason,
                     "description": description,
                     "source_url": source_url,
-                    "external_id": payload.external_id,
+                    "external_id": resolved_external_id,
                     "status": payload.status,
                     "source": "webhook",
                 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 
 import {
   type Commission,
@@ -118,6 +119,7 @@ export default function EmployeePage() {
           onClick={onLogout}
           type="button"
         >
+          <LogOut size={16} />
           Logout
         </button>
       }
@@ -181,7 +183,11 @@ export default function EmployeePage() {
                 <td className="py-2 pr-4">{formatEuro(row.revenue_amount)}</td>
                 <td className="py-2 pr-4">{(row.commission_rate * 100).toFixed(2)}%</td>
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
-                <td className="py-2 pr-4">{row.status}</td>
+                <td className="py-2 pr-4">
+                  <span className={`status-badge status-${row.status}`}>
+                    {row.status === "in_progress" ? "in progress" : row.status}
+                  </span>
+                </td>
               </tr>
             ))}
             {filteredCommissions.length === 0 ? (
