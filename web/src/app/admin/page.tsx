@@ -242,7 +242,7 @@ export default function AdminPage() {
           ? ` Hinweis: ${result.emptyReason}`
           : "";
       setInfo(
-        `CSV exportiert (${result.filename}). ${result.rowCount} offene Provisionen aus dem Vormonat wurden im CSV auf paid mit paid_at=now gesetzt (ohne DB-Aenderung).${emptyHint}`,
+        `CSV exportiert (${result.filename}). ${result.rowCount} offene Provisionen aus dem Vormonat wurden im CSV auf paid mit paid_at=now gesetzt (ohne DB-Änderung).${emptyHint}`,
       );
     } catch (requestError) {
       setError(
