@@ -31,23 +31,24 @@ class ExportResult:
 
 
 class AdminExportService:
-    """Exports previous-month pending commissions and marks them as paid."""
+    """Exports previous-month commissions (excl. cancelled) and marks them as bezahlt."""
 
-    PENDING_STATUSES = ("open", "in_progress")
+    EXCLUDED_STATUSES = ("storniert", "cancelled")
+    PAID_STATUS = "bezahlt"
 
     def __init__(self, supabase_client: Client) -> None:
         self.supabase = supabase_client
 
     def export_open_commissions_for_previous_month(self) -> ExportResult:
-        """Export previous-month pending commissions and mark them paid in DB."""
+        """Export previous-month commissions and mark them bezahlt in DB."""
         window = self._build_previous_month_window()
-        exported_rows = self._mark_pending_for_window_as_paid(window)
+        exported_rows = self._mark_exportable_for_window_as_paid(window)
         csv_payload = self._to_csv(exported_rows)
         filename = f"commissions_export_{window.label}.csv"
         empty_reason = None
         if not exported_rows:
             empty_reason = (
-                f"Keine offenen Provisionen im Vormonat ({window.label}) gefunden."
+                f"Keine Provisionen im Vormonat ({window.label}) gefunden."
             )
         return ExportResult(
             csv_bytes=csv_payload,
@@ -57,20 +58,21 @@ class AdminExportService:
             empty_reason=empty_reason,
         )
 
-    def _mark_pending_for_window_as_paid(self, window: ExportWindow) -> list[dict]:
+    def _mark_exportable_for_window_as_paid(self, window: ExportWindow) -> list[dict]:
         response = (
             self.supabase.table("commissions")
             .update(
                 {
-                    "status": "paid",
+                    "status": self.PAID_STATUS,
                     "paid_at": datetime.now(UTC).isoformat(),
                 },
                 returning="representation",
             )
             .select(
-                "id, employee_id, revenue_amount, commission_rate, commission_amount, reason, description, source_url, status, source, external_id, created_at, paid_at, employee:employees(name,email)"
+                "id, employee_id, reason, description, commission_amount, created_at, "
+                "employee:employees(name,email)"
             )
-            .in_("status", self.PENDING_STATUSES)
+            .not_.in_("status", list(self.EXCLUDED_STATUSES))
             .gte("created_at", window.start_iso)
             .lt("created_at", window.end_iso)
             .execute()
@@ -106,25 +108,14 @@ class AdminExportService:
     def _to_csv(rows: list[dict]) -> bytes:
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(
-            [
-                "id",
-                "employee_id",
-                "employee_name",
-                "employee_email",
-                "created_at",
-                "paid_at",
-                "reason",
-                "description",
-                "revenue_amount",
-                "commission_rate",
-                "commission_amount",
-                "status",
-                "source",
-                "external_id",
-                "source_url",
-            ]
-        )
+        writer.writerow([
+            "employee_name",
+            "employee_email",
+            "created_at",
+            "reason",
+            "description",
+            "commission_amount",
+        ])
 
         for row in rows:
             employee_relation = row.get("employee")
@@ -133,25 +124,22 @@ class AdminExportService:
                 if isinstance(employee_relation, list) and employee_relation
                 else employee_relation
             ) or {}
-            writer.writerow(
-                [
-                    row.get("id", ""),
-                    row.get("employee_id", ""),
-                    employee.get("name", ""),
-                    employee.get("email", ""),
-                    row.get("created_at", ""),
-                    row.get("paid_at", ""),
-                    row.get("reason", ""),
-                    row.get("description", ""),
-                    row.get("revenue_amount", ""),
-                    row.get("commission_rate", ""),
-                    row.get("commission_amount", ""),
-                    row.get("status", ""),
-                    row.get("source", ""),
-                    row.get("external_id", ""),
-                    row.get("source_url", ""),
-                ]
-            )
 
-        return output.getvalue().encode("utf-8")
+            created_at_raw = row.get("created_at") or ""
+            try:
+                dt = datetime.fromisoformat(created_at_raw.replace("Z", "+00:00"))
+                created_at_formatted = dt.strftime("%d.%m.%Y")
+            except (ValueError, AttributeError):
+                created_at_formatted = created_at_raw
 
+            writer.writerow([
+                employee.get("name") or "",
+                employee.get("email") or "",
+                created_at_formatted,
+                row.get("reason") or "",
+                row.get("description") or "",
+                row.get("commission_amount", ""),
+            ])
+
+        # UTF-8 with BOM for correct Excel/German locale handling
+        return output.getvalue().encode("utf-8-sig")

@@ -27,13 +27,11 @@ function formatEuro(amount: number): string {
 }
 
 function formatStatusLabel(status: string): string {
-  if (status === "in_progress") {
-    return "in progress";
-  }
-  return status;
+  if (status === "in_bearbeitung") return "In Bearbeitung";
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
-const BUILT_IN_STATUSES = ["open", "in_progress", "paid", "cancelled"];
+const BUILT_IN_STATUSES = ["offen", "in_bearbeitung", "bezahlt", "storniert"];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -44,7 +42,7 @@ export default function AdminPage() {
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
   const [customStatuses, setCustomStatuses] = useState<CommissionStatusEntry[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "paid">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "offen" | "bezahlt">("all");
   const [monthFilter, setMonthFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [savingCommissionId, setSavingCommissionId] = useState("");
@@ -113,8 +111,8 @@ export default function AdminPage() {
     return commissions.filter((row) => {
       const statusMatches =
         statusFilter === "all" ||
-        (statusFilter === "paid" && row.status === "paid") ||
-        (statusFilter === "open" && row.status !== "paid" && row.status !== "cancelled");
+        (statusFilter === "bezahlt" && row.status === "bezahlt") ||
+        (statusFilter === "offen" && row.status !== "bezahlt" && row.status !== "storniert");
       if (!statusMatches) {
         return false;
       }
@@ -138,10 +136,10 @@ export default function AdminPage() {
   const totals = useMemo(() => {
     return {
       open: filteredCommissions
-        .filter((row) => row.status !== "paid" && row.status !== "cancelled")
+        .filter((row) => row.status !== "bezahlt" && row.status !== "storniert")
         .reduce((sum, row) => sum + row.commission_amount, 0),
       paid: filteredCommissions
-        .filter((row) => row.status === "paid")
+        .filter((row) => row.status === "bezahlt")
         .reduce((sum, row) => sum + row.commission_amount, 0),
     };
   }, [filteredCommissions]);
@@ -219,7 +217,7 @@ export default function AdminPage() {
           ? ` Hinweis: ${result.emptyReason}`
           : "";
       setInfo(
-        `CSV exportiert (${result.filename}). ${result.rowCount} exportierte Provisionen wurden auf paid gesetzt.${emptyHint}`,
+        `CSV exportiert (${result.filename}). ${result.rowCount} exportierte Provisionen wurden auf bezahlt gesetzt.${emptyHint}`,
       );
     } catch (requestError) {
       setError(
@@ -314,13 +312,13 @@ export default function AdminPage() {
           <select
             className="brand-input mt-1 block"
             onChange={(event) =>
-              setStatusFilter(event.target.value as "all" | "open" | "paid")
+              setStatusFilter(event.target.value as "all" | "offen" | "bezahlt")
             }
             value={statusFilter}
           >
             <option value="all">Alle</option>
-            <option value="open">Open</option>
-            <option value="paid">Paid</option>
+            <option value="offen">Offen</option>
+            <option value="bezahlt">Bezahlt</option>
           </select>
         </label>
       </div>

@@ -5,7 +5,7 @@ import { AuthError, type EmailOtpType, type User } from "@supabase/supabase-js";
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
 export type EmployeeRole = "admin" | "employee";
-export type CommissionStatus = "open" | "in_progress" | "paid" | "cancelled";
+export type CommissionStatus = "offen" | "in_bearbeitung" | "bezahlt" | "storniert";
 
 export type CommissionStatusEntry = {
   id: string;

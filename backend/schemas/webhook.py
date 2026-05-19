@@ -4,7 +4,7 @@ from decimal import Decimal
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, EmailStr, Field, field_validator
 
-ALLOWED_COMMISSION_STATUSES = ("open", "in_progress", "paid", "cancelled")
+ALLOWED_COMMISSION_STATUSES = ("offen", "in_bearbeitung", "bezahlt", "storniert")
 
 
 class ParticipantInput(BaseModel):
