@@ -328,8 +328,15 @@ export default function AdminPage() {
 
   return (
     <DashboardShell
-      title="Provisionen Dashboard"
+      title="Admin Dashboard"
       subtitle={`Angemeldet als ${employeeName || "Admin"}`}
+      navExtra={
+        <PaymentOverviewChart
+          compact
+          outstanding={currentMonthStats.outstanding}
+          paid={currentMonthStats.paid}
+        />
+      }
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -423,21 +430,15 @@ export default function AdminPage() {
         </div>
       }
     >
-      <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_280px]">
-        <div className="grid gap-3 sm:grid-cols-2 content-start">
-          <div className="metric-card">
-            <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
-            <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
-          </div>
-          <div className="metric-card">
-            <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
-            <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
-          </div>
+      <div className="mb-4 grid gap-3 sm:grid-cols-2">
+        <div className="metric-card">
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
+          <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
-        <PaymentOverviewChart
-          outstanding={currentMonthStats.outstanding}
-          paid={currentMonthStats.paid}
-        />
+        <div className="metric-card">
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
+          <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
+        </div>
       </div>
 
       {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}

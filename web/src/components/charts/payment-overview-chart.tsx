@@ -5,6 +5,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 interface PaymentOverviewChartProps {
   paid: number;
   outstanding: number;
+  compact?: boolean;
 }
 
 function formatEuro(amount: number): string {
@@ -17,7 +18,7 @@ const COLORS = {
   empty: "#333333",
 };
 
-export function PaymentOverviewChart({ paid, outstanding }: PaymentOverviewChartProps) {
+export function PaymentOverviewChart({ paid, outstanding, compact }: PaymentOverviewChartProps) {
   const total = paid + outstanding;
   const hasData = total > 0;
 
@@ -29,6 +30,45 @@ export function PaymentOverviewChart({ paid, outstanding }: PaymentOverviewChart
     : [{ name: "Keine Daten", value: 1, color: COLORS.empty }];
 
   const paidPercent = hasData ? Math.round((paid / total) * 100) : 0;
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2.5">
+        <div className="relative shrink-0" style={{ width: 48, height: 48 }}>
+          <PieChart height={48} width={48}>
+            <Pie
+              cx={24}
+              cy={24}
+              data={data}
+              dataKey="value"
+              innerRadius={16}
+              outerRadius={23}
+              paddingAngle={hasData ? 3 : 0}
+              startAngle={90}
+              endAngle={-270}
+            >
+              {data.map((entry, index) => (
+                <Cell fill={entry.color} key={`cell-${index}`} stroke="transparent" />
+              ))}
+            </Pie>
+          </PieChart>
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+              {paidPercent}%
+            </span>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-white leading-tight">Zahlungsübersicht</p>
+          <p className="text-[10px] text-[var(--brand-text-muted)] leading-tight mt-0.5">
+            <span style={{ color: COLORS.paid }}>{formatEuro(paid)}</span>
+            {" / "}
+            <span style={{ color: COLORS.outstanding }}>{formatEuro(outstanding)}</span>
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -69,28 +109,20 @@ export function PaymentOverviewChart({ paid, outstanding }: PaymentOverviewChart
           </PieChart>
         </ResponsiveContainer>
 
-        {/* Center label */}
         <div className="pointer-events-none absolute flex flex-col items-center justify-center">
           <span className="text-xl font-bold text-white">{paidPercent}%</span>
           <span className="text-xs text-[var(--brand-text-muted)]">bezahlt</span>
         </div>
       </div>
 
-      {/* Legend */}
       <div className="mt-2 flex justify-center gap-5">
         <div className="flex items-center gap-1.5">
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ background: COLORS.paid }}
-          />
+          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: COLORS.paid }} />
           <span className="text-xs text-[var(--brand-text-muted)]">Bezahlt</span>
           <span className="text-xs font-medium text-white">{formatEuro(paid)}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span
-            className="inline-block h-2.5 w-2.5 rounded-full"
-            style={{ background: COLORS.outstanding }}
-          />
+          <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: COLORS.outstanding }} />
           <span className="text-xs text-[var(--brand-text-muted)]">Ausstehend</span>
           <span className="text-xs font-medium text-white">{formatEuro(outstanding)}</span>
         </div>
