@@ -19,7 +19,6 @@ import {
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { PaymentOverviewChart } from "@/components/charts/payment-overview-chart";
-import { CommissionFlowDiagram } from "@/components/charts/commission-flow-diagram";
 
 function formatEuro(amount: number): string {
   return new Intl.NumberFormat("de-DE", {
@@ -329,7 +328,7 @@ export default function AdminPage() {
 
   return (
     <DashboardShell
-      title="Admin Dashboard"
+      title="Provisionen Dashboard"
       subtitle={`Angemeldet als ${employeeName || "Admin"}`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
@@ -424,23 +423,21 @@ export default function AdminPage() {
         </div>
       }
     >
-      <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="metric-card">
-          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
-          <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
+      <div className="mb-6 grid gap-4 lg:grid-cols-[1fr_280px]">
+        <div className="grid gap-3 sm:grid-cols-2 content-start">
+          <div className="metric-card">
+            <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
+            <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
+          </div>
+          <div className="metric-card">
+            <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
+            <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
+          </div>
         </div>
-        <div className="metric-card">
-          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
-          <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
-        </div>
-      </div>
-
-      <div className="mb-6 grid gap-4 lg:grid-cols-2">
         <PaymentOverviewChart
           outstanding={currentMonthStats.outstanding}
           paid={currentMonthStats.paid}
         />
-        <CommissionFlowDiagram />
       </div>
 
       {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}

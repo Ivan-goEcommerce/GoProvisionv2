@@ -327,6 +327,19 @@ body {
   border: 1px solid rgba(252, 165, 165, 0.2);
 }
 
+/* ── Date/Month input calendar icon ── */
+input[type="month"]::-webkit-calendar-picker-indicator,
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+input[type="month"]::-webkit-calendar-picker-indicator:hover,
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* ── Animations ── */
 @keyframes fadeIn {
   from { opacity: 0; }
