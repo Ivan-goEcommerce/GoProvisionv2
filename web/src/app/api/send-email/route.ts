@@ -1,8 +1,6 @@
 import { Resend } from "resend";
 import { NextRequest, NextResponse } from "next/server";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 type SendEmailBody = {
   to: string[];
   csvBase64: string;
@@ -10,6 +8,7 @@ type SendEmailBody = {
 };
 
 export async function POST(request: NextRequest) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const body: SendEmailBody = await request.json();
   const { to, csvBase64, filename } = body;
 
