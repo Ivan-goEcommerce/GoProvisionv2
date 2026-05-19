@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, LogOut, Settings } from "lucide-react";
+import { Download, LogOut, Mail, Settings } from "lucide-react";
 
 import {
   type Commission,
@@ -31,6 +31,18 @@ function formatStatusLabel(status: string): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1] ?? "");
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 const BUILT_IN_STATUSES = ["offen", "in_bearbeitung", "bezahlt", "storniert"];
 
 export default function AdminPage() {
@@ -46,10 +58,30 @@ export default function AdminPage() {
   const [monthFilter, setMonthFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [savingCommissionId, setSavingCommissionId] = useState("");
-  const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<
-    Record<string, string>
-  >({});
+  const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<Record<string, string>>({});
   const [isExporting, setIsExporting] = useState(false);
+
+  // E-Mail state
+  const [lastExport, setLastExport] = useState<{ blob: Blob; filename: string } | null>(null);
+  const [showEmailDropdown, setShowEmailDropdown] = useState(false);
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const emailDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (emailDropdownRef.current && !emailDropdownRef.current.contains(event.target as Node)) {
+        setShowEmailDropdown(false);
+      }
+    };
+    if (showEmailDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showEmailDropdown]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -113,17 +145,11 @@ export default function AdminPage() {
         statusFilter === "all" ||
         (statusFilter === "bezahlt" && row.status === "bezahlt") ||
         (statusFilter === "offen" && row.status !== "bezahlt" && row.status !== "storniert");
-      if (!statusMatches) {
-        return false;
-      }
+      if (!statusMatches) return false;
 
-      if (employeeFilter !== "all" && row.employee_id !== employeeFilter) {
-        return false;
-      }
+      if (employeeFilter !== "all" && row.employee_id !== employeeFilter) return false;
 
-      if (!monthFilter) {
-        return true;
-      }
+      if (!monthFilter) return true;
 
       const [year, month] = monthFilter.split("-");
       const commissionDate = new Date(row.created_at);
@@ -151,21 +177,13 @@ export default function AdminPage() {
     return [...BUILT_IN_STATUSES, ...customNames];
   }, [customStatuses]);
 
-  const updateCommissionDraftStatus = (
-    commissionId: string,
-    status: string,
-  ) => {
-    setCommissionStatusDrafts((current) => ({
-      ...current,
-      [commissionId]: status,
-    }));
+  const updateCommissionDraftStatus = (commissionId: string, status: string) => {
+    setCommissionStatusDrafts((current) => ({ ...current, [commissionId]: status }));
   };
 
   const onSaveCommissionStatus = async (commission: Commission) => {
     const nextStatus = commissionStatusDrafts[commission.id] ?? commission.status;
-    if (nextStatus === commission.status) {
-      return;
-    }
+    if (nextStatus === commission.status) return;
 
     setError("");
     setInfo("");
@@ -212,6 +230,8 @@ export default function AdminPage() {
       anchor.remove();
       URL.revokeObjectURL(objectUrl);
 
+      setLastExport({ blob: result.blob, filename: result.filename });
+
       const refreshed = await getCommissionsForAdmin();
       setCommissions(refreshed);
       const emptyHint =
@@ -223,12 +243,53 @@ export default function AdminPage() {
       );
     } catch (requestError) {
       setError(
-        requestError instanceof Error
-          ? requestError.message
-          : "Export fehlgeschlagen.",
+        requestError instanceof Error ? requestError.message : "Export fehlgeschlagen.",
       );
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const toggleEmployeeSelection = (employeeId: string) => {
+    setSelectedEmployeeIds((current) => {
+      const next = new Set(current);
+      if (next.has(employeeId)) {
+        next.delete(employeeId);
+      } else {
+        next.add(employeeId);
+      }
+      return next;
+    });
+  };
+
+  const onSendEmail = async () => {
+    if (!lastExport || selectedEmployeeIds.size === 0) return;
+    setEmailError("");
+    setIsSendingEmail(true);
+    try {
+      const csvBase64 = await blobToBase64(lastExport.blob);
+      const selectedEmails = employees
+        .filter((e) => selectedEmployeeIds.has(e.id))
+        .map((e) => e.email);
+
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: selectedEmails, csvBase64, filename: lastExport.filename }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json() as { error?: string };
+        throw new Error(data.error ?? "E-Mail konnte nicht gesendet werden.");
+      }
+
+      setShowEmailDropdown(false);
+      setSelectedEmployeeIds(new Set());
+      setInfo(`E-Mail mit „${lastExport.filename}" an ${selectedEmails.length} Empfänger gesendet.`);
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "E-Mail konnte nicht gesendet werden.");
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -259,6 +320,71 @@ export default function AdminPage() {
             <Download size={16} />
             {isExporting ? "Exportiere..." : "CSV-Export"}
           </button>
+
+          {/* E-Mail senden */}
+          <div className="relative" ref={emailDropdownRef}>
+            <button
+              className="brand-button-secondary disabled:opacity-40"
+              disabled={!lastExport}
+              onClick={() => {
+                setEmailError("");
+                setShowEmailDropdown((v) => !v);
+              }}
+              title={!lastExport ? "Zuerst CSV exportieren" : ""}
+              type="button"
+            >
+              <Mail size={16} />
+              E-Mail senden
+            </button>
+
+            {showEmailDropdown && (
+              <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-[var(--border)] bg-[var(--brand-bg)] p-4 shadow-xl">
+                <p className="mb-3 text-sm font-semibold text-white">Empfänger auswählen</p>
+                <div className="mb-3 max-h-52 space-y-2 overflow-y-auto">
+                  {employees.map((employee) => (
+                    <label
+                      key={employee.id}
+                      className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-[var(--brand-surface)]"
+                    >
+                      <input
+                        checked={selectedEmployeeIds.has(employee.id)}
+                        className="accent-[var(--brand-primary)]"
+                        onChange={() => toggleEmployeeSelection(employee.id)}
+                        type="checkbox"
+                      />
+                      <span className="text-white">{employee.name}</span>
+                      <span className="ml-auto truncate text-xs text-[var(--brand-text-muted)]">
+                        {employee.email}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                {emailError ? (
+                  <p className="mb-2 text-xs text-red-400">{emailError}</p>
+                ) : null}
+                <div className="flex gap-2">
+                  <button
+                    className="brand-button-accent flex-1 disabled:opacity-60"
+                    disabled={selectedEmployeeIds.size === 0 || isSendingEmail}
+                    onClick={() => { void onSendEmail(); }}
+                    type="button"
+                  >
+                    {isSendingEmail
+                      ? "Senden..."
+                      : `Senden (${selectedEmployeeIds.size})`}
+                  </button>
+                  <button
+                    className="brand-button-secondary"
+                    onClick={() => setShowEmailDropdown(false)}
+                    type="button"
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             className="brand-button-secondary"
             onClick={onLogout}
@@ -351,9 +477,7 @@ export default function AdminPage() {
                 <td className="py-2 pr-4">
                   <select
                     className="brand-input px-2 py-1 text-sm"
-                    onChange={(event) =>
-                      updateCommissionDraftStatus(row.id, event.target.value)
-                    }
+                    onChange={(event) => updateCommissionDraftStatus(row.id, event.target.value)}
                     value={commissionStatusDrafts[row.id] ?? row.status}
                   >
                     {allStatusOptions.map((statusOption) => (
@@ -388,7 +512,6 @@ export default function AdminPage() {
           </tbody>
         </table>
       </div>
-
     </DashboardShell>
   );
 }
