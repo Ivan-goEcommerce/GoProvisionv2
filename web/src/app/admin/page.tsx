@@ -18,6 +18,8 @@ import {
   updateCommissionStatus,
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { PaymentOverviewChart } from "@/components/charts/payment-overview-chart";
+import { CommissionFlowDiagram } from "@/components/charts/commission-flow-diagram";
 
 function formatEuro(amount: number): string {
   return new Intl.NumberFormat("de-DE", {
@@ -176,6 +178,23 @@ export default function AdminPage() {
       .filter((name) => !BUILT_IN_STATUSES.includes(name));
     return [...BUILT_IN_STATUSES, ...customNames];
   }, [customStatuses]);
+
+  const currentMonthStats = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const thisMonth = commissions.filter((row) => {
+      const d = new Date(row.created_at);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+    const paid = thisMonth
+      .filter((row) => row.status === "bezahlt")
+      .reduce((sum, row) => sum + row.commission_amount, 0);
+    const outstanding = thisMonth
+      .filter((row) => row.status !== "bezahlt" && row.status !== "storniert")
+      .reduce((sum, row) => sum + row.commission_amount, 0);
+    return { paid, outstanding };
+  }, [commissions]);
 
   const updateCommissionDraftStatus = (commissionId: string, status: string) => {
     setCommissionStatusDrafts((current) => ({ ...current, [commissionId]: status }));
@@ -414,6 +433,14 @@ export default function AdminPage() {
           <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
+      </div>
+
+      <div className="mb-6 grid gap-4 lg:grid-cols-2">
+        <PaymentOverviewChart
+          outstanding={currentMonthStats.outstanding}
+          paid={currentMonthStats.paid}
+        />
+        <CommissionFlowDiagram />
       </div>
 
       {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}
