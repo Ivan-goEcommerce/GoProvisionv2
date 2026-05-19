@@ -33,16 +33,16 @@ export function PaymentOverviewChart({ paid, outstanding, compact }: PaymentOver
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2.5">
-        <div className="relative shrink-0" style={{ width: 48, height: 48 }}>
-          <PieChart height={48} width={48}>
+      <div className="flex items-center gap-3">
+        <div className="relative shrink-0" style={{ width: 68, height: 68 }}>
+          <PieChart height={68} width={68}>
             <Pie
-              cx={24}
-              cy={24}
+              cx={34}
+              cy={34}
               data={data}
               dataKey="value"
-              innerRadius={16}
-              outerRadius={23}
+              innerRadius={22}
+              outerRadius={32}
               paddingAngle={hasData ? 3 : 0}
               startAngle={90}
               endAngle={-270}
@@ -53,16 +53,17 @@ export function PaymentOverviewChart({ paid, outstanding, compact }: PaymentOver
             </Pie>
           </PieChart>
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <span style={{ fontSize: 9, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#fff", lineHeight: 1 }}>
               {paidPercent}%
             </span>
           </div>
         </div>
         <div className="min-w-0">
           <p className="text-xs font-medium text-white leading-tight">Zahlungsübersicht</p>
-          <p className="text-[10px] text-[var(--brand-text-muted)] leading-tight mt-0.5">
+          <p className="text-[11px] leading-tight mt-1">
             <span style={{ color: COLORS.paid }}>{formatEuro(paid)}</span>
-            {" / "}
+          </p>
+          <p className="text-[11px] leading-tight mt-0.5">
             <span style={{ color: COLORS.outstanding }}>{formatEuro(outstanding)}</span>
           </p>
         </div>
