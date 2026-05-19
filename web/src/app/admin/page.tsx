@@ -263,11 +263,17 @@ export default function AdminPage() {
   };
 
   const onSendEmail = async () => {
-    if (!lastExport || selectedEmployeeIds.size === 0) return;
+    if (selectedEmployeeIds.size === 0) {
+      setEmailError("Bitte mindestens einen Empfänger auswählen.");
+      return;
+    }
     setEmailError("");
     setIsSendingEmail(true);
     try {
-      const csvBase64 = await blobToBase64(lastExport.blob);
+      const result = await exportPreviousMonthOpenCommissionsCsv();
+      setLastExport({ blob: result.blob, filename: result.filename });
+
+      const csvBase64 = await blobToBase64(result.blob);
       const selectedEmails = employees
         .filter((e) => selectedEmployeeIds.has(e.id))
         .map((e) => e.email);
@@ -275,7 +281,7 @@ export default function AdminPage() {
       const response = await fetch("/api/send-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: selectedEmails, csvBase64, filename: lastExport.filename }),
+        body: JSON.stringify({ to: selectedEmails, csvBase64, filename: result.filename }),
       });
 
       if (!response.ok) {
@@ -283,9 +289,14 @@ export default function AdminPage() {
         throw new Error(data.error ?? "E-Mail konnte nicht gesendet werden.");
       }
 
+      const refreshed = await getCommissionsForAdmin();
+      setCommissions(refreshed);
       setShowEmailDropdown(false);
       setSelectedEmployeeIds(new Set());
-      setInfo(`E-Mail mit „${lastExport.filename}" an ${selectedEmails.length} Empfänger gesendet.`);
+      const emptyHint = result.rowCount === 0 && result.emptyReason ? ` Hinweis: ${result.emptyReason}` : "";
+      setInfo(
+        `E-Mail mit „${result.filename}" an ${selectedEmails.length} Empfänger gesendet. ${result.rowCount} Provisionen auf bezahlt gesetzt.${emptyHint}`,
+      );
     } catch (err) {
       setEmailError(err instanceof Error ? err.message : "E-Mail konnte nicht gesendet werden.");
     } finally {
@@ -324,13 +335,11 @@ export default function AdminPage() {
           {/* E-Mail senden */}
           <div className="relative" ref={emailDropdownRef}>
             <button
-              className="brand-button-secondary disabled:opacity-40"
-              disabled={!lastExport}
+              className="brand-button-secondary"
               onClick={() => {
                 setEmailError("");
                 setShowEmailDropdown((v) => !v);
               }}
-              title={!lastExport ? "Zuerst CSV exportieren" : ""}
               type="button"
             >
               <Mail size={16} />

@@ -8,18 +8,42 @@ type SendEmailBody = {
 };
 
 export async function POST(request: NextRequest) {
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const body: SendEmailBody = await request.json();
-  const { to, csvBase64, filename } = body;
-
-  if (!to?.length || !csvBase64 || !filename) {
-    return NextResponse.json({ error: "Ungültige Anfrage." }, { status: 400 });
+  if (!process.env.RESEND_API_KEY) {
+    return NextResponse.json(
+      { error: "E-Mail-Versand nicht konfiguriert. RESEND_API_KEY fehlt." },
+      { status: 500 },
+    );
+  }
+  if (!process.env.RESEND_FROM_EMAIL) {
+    return NextResponse.json(
+      { error: "E-Mail-Versand nicht konfiguriert. RESEND_FROM_EMAIL fehlt." },
+      { status: 500 },
+    );
   }
 
-  const from = process.env.RESEND_FROM_EMAIL ?? "GoProvisions <onboarding@resend.dev>";
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
-  const { error } = await resend.emails.send({
-    from,
+  let body: SendEmailBody;
+  try {
+    body = await request.json() as SendEmailBody;
+  } catch {
+    return NextResponse.json({ error: "Ungültiges Anfrage-Format." }, { status: 400 });
+  }
+
+  const { to, csvBase64, filename } = body;
+
+  if (!to?.length) {
+    return NextResponse.json({ error: "Keine Empfänger angegeben." }, { status: 400 });
+  }
+  if (!csvBase64) {
+    return NextResponse.json({ error: "CSV-Inhalt fehlt." }, { status: 400 });
+  }
+  if (!filename) {
+    return NextResponse.json({ error: "Dateiname fehlt." }, { status: 400 });
+  }
+
+  const { data, error } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL,
     to,
     subject: `Provisionen Export – ${filename}`,
     html: `
@@ -33,8 +57,11 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: `Resend-Fehler: ${error.message}` },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, id: data?.id });
 }
