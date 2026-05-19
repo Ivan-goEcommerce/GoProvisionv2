@@ -20,13 +20,18 @@ function formatEuro(amount: number): string {
   }).format(amount);
 }
 
+function formatStatusLabel(status: string): string {
+  if (status === "in_bearbeitung") return "In Bearbeitung";
+  return status.charAt(0).toUpperCase() + status.slice(1);
+}
+
 export default function EmployeePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [employeeName, setEmployeeName] = useState("");
   const [commissions, setCommissions] = useState<Commission[]>([]);
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "paid">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "offen" | "bezahlt">("all");
   const [monthFilter, setMonthFilter] = useState("");
 
   useEffect(() => {
@@ -57,7 +62,7 @@ export default function EmployeePage() {
         setError(
           requestError instanceof Error
             ? requestError.message
-            : "Could not load employee dashboard.",
+            : "Dashboard konnte nicht geladen werden.",
         );
       } finally {
         setIsLoading(false);
@@ -71,8 +76,8 @@ export default function EmployeePage() {
     return commissions.filter((row) => {
       const statusMatches =
         statusFilter === "all" ||
-        (statusFilter === "paid" && row.status === "paid") ||
-        (statusFilter === "open" && row.status !== "paid" && row.status !== "cancelled");
+        (statusFilter === "bezahlt" && row.status === "bezahlt") ||
+        (statusFilter === "offen" && row.status !== "bezahlt" && row.status !== "storniert");
       if (!statusMatches) {
         return false;
       }
@@ -92,10 +97,10 @@ export default function EmployeePage() {
   const totals = useMemo(() => {
     return {
       open: filteredCommissions
-        .filter((row) => row.status !== "paid" && row.status !== "cancelled")
+        .filter((row) => row.status !== "bezahlt" && row.status !== "storniert")
         .reduce((sum, row) => sum + row.commission_amount, 0),
       paid: filteredCommissions
-        .filter((row) => row.status === "paid")
+        .filter((row) => row.status === "bezahlt")
         .reduce((sum, row) => sum + row.commission_amount, 0),
     };
   }, [filteredCommissions]);
@@ -106,7 +111,7 @@ export default function EmployeePage() {
   };
 
   if (isLoading) {
-    return <main className="p-6 text-sm text-[var(--brand-text-muted)]">Loading employee dashboard...</main>;
+    return <main className="p-6 text-sm text-[var(--brand-text-muted)]">Lade Dashboard...</main>;
   }
 
   return (
@@ -126,11 +131,11 @@ export default function EmployeePage() {
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <div className="metric-card">
-          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt open</p>
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
         <div className="metric-card">
-          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt paid</p>
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
       </div>
@@ -143,13 +148,13 @@ export default function EmployeePage() {
           <select
             className="brand-input mt-1 block"
             onChange={(event) =>
-              setStatusFilter(event.target.value as "all" | "open" | "paid")
+              setStatusFilter(event.target.value as "all" | "offen" | "bezahlt")
             }
             value={statusFilter}
           >
             <option value="all">Alle</option>
-            <option value="open">Open</option>
-            <option value="paid">Paid</option>
+            <option value="offen">Offen</option>
+            <option value="bezahlt">Bezahlt</option>
           </select>
         </label>
         <label className="text-sm text-[var(--brand-text-muted)]">
@@ -185,7 +190,7 @@ export default function EmployeePage() {
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
                 <td className="py-2 pr-4">
                   <span className={`status-badge status-${row.status}`}>
-                    {row.status === "in_progress" ? "in progress" : row.status}
+                    {formatStatusLabel(row.status)}
                   </span>
                 </td>
               </tr>

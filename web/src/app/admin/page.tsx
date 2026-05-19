@@ -98,7 +98,7 @@ export default function AdminPage() {
           setError(requestError.message);
           return;
         }
-        setError("Could not load admin dashboard.");
+        setError("Dashboard konnte nicht geladen werden.");
       } finally {
         setIsLoading(false);
       }
@@ -231,7 +231,7 @@ export default function AdminPage() {
   };
 
   if (isLoading) {
-    return <main className="p-6 text-sm text-[var(--brand-text-muted)]">Loading admin dashboard...</main>;
+    return <main className="p-6 text-sm text-[var(--brand-text-muted)]">Lade Dashboard...</main>;
   }
 
   return (
@@ -270,11 +270,11 @@ export default function AdminPage() {
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
         <div className="metric-card">
-          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt open</p>
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
         <div className="metric-card">
-          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt paid</p>
+          <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
       </div>

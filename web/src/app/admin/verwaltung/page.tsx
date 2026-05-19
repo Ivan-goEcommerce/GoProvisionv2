@@ -261,8 +261,8 @@ export default function AdminVerwaltungPage() {
                       }
                       value={employee.role}
                     >
-                      <option value="employee">employee</option>
-                      <option value="admin">admin</option>
+                      <option value="employee">Mitarbeiter</option>
+                      <option value="admin">Administrator</option>
                     </select>
                   </td>
                   <td className="py-2 pr-4">
