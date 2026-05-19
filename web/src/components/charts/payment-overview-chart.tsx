@@ -34,15 +34,15 @@ export function PaymentOverviewChart({ paid, outstanding, compact }: PaymentOver
   if (compact) {
     return (
       <div className="flex items-center gap-3">
-        <div className="relative shrink-0" style={{ width: 68, height: 68 }}>
-          <PieChart height={68} width={68}>
+        <div className="relative shrink-0" style={{ width: 80, height: 80 }}>
+          <PieChart height={80} width={80}>
             <Pie
-              cx={34}
-              cy={34}
+              cx={40}
+              cy={40}
               data={data}
               dataKey="value"
               innerRadius={22}
-              outerRadius={32}
+              outerRadius={34}
               paddingAngle={hasData ? 3 : 0}
               startAngle={90}
               endAngle={-270}
