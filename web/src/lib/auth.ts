@@ -7,6 +7,11 @@ import { getSupabaseBrowserClient } from "@/lib/supabase";
 export type EmployeeRole = "admin" | "employee";
 export type CommissionStatus = "open" | "in_progress" | "paid" | "cancelled";
 
+export type CommissionStatusEntry = {
+  id: string;
+  name: string;
+};
+
 export type EmployeeProfile = {
   id: string;
   auth_user_id: string;
@@ -24,7 +29,7 @@ export type Commission = {
   revenue_amount: number;
   commission_rate: number;
   commission_amount: number;
-  status: CommissionStatus;
+  status: string;
   source: string;
   source_url: string | null;
   created_at: string;
@@ -51,7 +56,7 @@ export type UpdateEmployeeInput = {
 };
 
 export type UpdateCommissionStatusInput = {
-  status: CommissionStatus;
+  status: string;
 };
 
 export type CsvExportResult = {
@@ -344,6 +349,31 @@ export async function getEmployees(): Promise<EmployeeProfile[]> {
     { method: "GET" },
     "Could not load employees."
   );
+}
+
+export async function getCommissionStatuses(): Promise<CommissionStatusEntry[]> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("status")
+    .select("id, name")
+    .order("name", { ascending: true });
+  if (error) {
+    throw new Error(`Provisionsstatus konnten nicht geladen werden: ${error.message}`);
+  }
+  return data ?? [];
+}
+
+export async function createCommissionStatus(name: string): Promise<CommissionStatusEntry> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("status")
+    .insert({ name: name.trim() })
+    .select("id, name")
+    .single();
+  if (error || !data) {
+    throw new Error("Status konnte nicht erstellt werden.");
+  }
+  return data;
 }
 
 export async function createEmployee(input: CreateEmployeeInput): Promise<EmployeeProfile> {

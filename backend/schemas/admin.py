@@ -1,8 +1,6 @@
 """Schemas for admin dashboard endpoints."""
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from backend.schemas.webhook import ALLOWED_COMMISSION_STATUSES
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AdminEmployee(BaseModel):
@@ -57,14 +55,5 @@ class UpdateCommissionStatusRequest(BaseModel):
     status: str = Field(min_length=1)
 
     model_config = ConfigDict(extra="forbid")
-
-    @field_validator("status")
-    @classmethod
-    def validate_status(cls, value: str) -> str:
-        normalized = value.strip().lower()
-        if normalized not in ALLOWED_COMMISSION_STATUSES:
-            allowed = ", ".join(ALLOWED_COMMISSION_STATUSES)
-            raise ValueError(f"status must be one of: {allowed}")
-        return normalized
 
 

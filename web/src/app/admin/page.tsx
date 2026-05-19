@@ -2,20 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, LogOut } from "lucide-react";
+import { Download, LogOut, Settings } from "lucide-react";
 
 import {
   type Commission,
-  type CommissionStatus,
+  type CommissionStatusEntry,
   type EmployeeProfile,
   exportPreviousMonthOpenCommissionsCsv,
   getCommissionsForAdmin,
+  getCommissionStatuses,
   getCurrentUser,
   getEmployees,
   getEmployeeProfileByAuthUserId,
   signOut,
   updateCommissionStatus,
-  updateEmployee,
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
 
@@ -33,12 +33,7 @@ function formatStatusLabel(status: string): string {
   return status;
 }
 
-const COMMISSION_STATUS_OPTIONS: CommissionStatus[] = [
-  "open",
-  "in_progress",
-  "paid",
-  "cancelled",
-];
+const BUILT_IN_STATUSES = ["open", "in_progress", "paid", "cancelled"];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -48,13 +43,13 @@ export default function AdminPage() {
   const [employeeName, setEmployeeName] = useState("");
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
+  const [customStatuses, setCustomStatuses] = useState<CommissionStatusEntry[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "paid">("all");
   const [monthFilter, setMonthFilter] = useState("");
   const [employeeFilter, setEmployeeFilter] = useState("all");
-  const [savingEmployeeId, setSavingEmployeeId] = useState("");
   const [savingCommissionId, setSavingCommissionId] = useState("");
   const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<
-    Record<string, CommissionStatus>
+    Record<string, string>
   >({});
   const [isExporting, setIsExporting] = useState(false);
 
@@ -78,13 +73,15 @@ export default function AdminPage() {
           return;
         }
 
-        const [rows, employeeRows] = await Promise.all([
+        const [rows, employeeRows, statusRows] = await Promise.all([
           getCommissionsForAdmin(),
           getEmployees(),
+          getCommissionStatuses(),
         ]);
         setEmployeeName(profile.name);
         setCommissions(rows);
         setEmployees(employeeRows);
+        setCustomStatuses(statusRows);
       } catch (requestError) {
         if (requestError instanceof Error) {
           if (requestError.message === "Admin access required.") {
@@ -149,35 +146,14 @@ export default function AdminPage() {
     };
   }, [filteredCommissions]);
 
-  const updateLocalEmployee = (employeeId: string, updates: Partial<EmployeeProfile>) => {
-    setEmployees((current) =>
-      current.map((employee) =>
-        employee.id === employeeId ? { ...employee, ...updates } : employee,
-      ),
-    );
-  };
-
-  const onSaveEmployee = async (employee: EmployeeProfile) => {
-    setError("");
-    setInfo("");
-    setSavingEmployeeId(employee.id);
-    try {
-      const updated = await updateEmployee(employee.id, {
-        role: employee.role,
-        active: employee.active,
-      });
-      updateLocalEmployee(updated.id, updated);
-      setInfo(`Mitarbeiter ${updated.name} wurde aktualisiert.`);
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : "Mitarbeiter konnte nicht aktualisiert werden.");
-    } finally {
-      setSavingEmployeeId("");
-    }
-  };
+  const allStatusOptions = useMemo(() => {
+    const customNames = customStatuses.map((s) => s.name);
+    return [...BUILT_IN_STATUSES, ...customNames];
+  }, [customStatuses]);
 
   const updateCommissionDraftStatus = (
     commissionId: string,
-    status: CommissionStatus,
+    status: string,
   ) => {
     setCommissionStatusDrafts((current) => ({
       ...current,
@@ -266,6 +242,14 @@ export default function AdminPage() {
       subtitle={`Angemeldet als ${employeeName || "Admin"}`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            className="brand-button-secondary"
+            onClick={() => router.push("/admin/verwaltung")}
+            type="button"
+          >
+            <Settings size={16} />
+            Admin Verwaltung
+          </button>
           <button
             className="brand-button-accent disabled:opacity-60"
             disabled={isExporting}
@@ -368,14 +352,11 @@ export default function AdminPage() {
                   <select
                     className="brand-input px-2 py-1 text-sm"
                     onChange={(event) =>
-                      updateCommissionDraftStatus(
-                        row.id,
-                        event.target.value as CommissionStatus,
-                      )
+                      updateCommissionDraftStatus(row.id, event.target.value)
                     }
                     value={commissionStatusDrafts[row.id] ?? row.status}
                   >
-                    {COMMISSION_STATUS_OPTIONS.map((statusOption) => (
+                    {allStatusOptions.map((statusOption) => (
                       <option key={statusOption} value={statusOption}>
                         {formatStatusLabel(statusOption)}
                       </option>
@@ -408,74 +389,6 @@ export default function AdminPage() {
         </table>
       </div>
 
-      <div className="mt-8 border-t border-[var(--border)] pt-6">
-        <h2 className="text-lg font-semibold text-white">Mitarbeiterverwaltung</h2>
-        <p className="mt-1 text-sm text-[var(--brand-text-muted)]">
-          Bestehende Rollen und Aktiv-Status verwalten.
-        </p>
-
-        <div className="mt-6 overflow-x-auto">
-          <table className="data-table min-w-[760px]">
-            <thead>
-              <tr className="text-left">
-                <th className="py-2 pr-4">Name</th>
-                <th className="py-2 pr-4">E-Mail</th>
-                <th className="py-2 pr-4">Rolle</th>
-                <th className="py-2 pr-4">Aktiv</th>
-                <th className="py-2 pr-4">Aktion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employees.map((employee) => (
-                <tr key={employee.id}>
-                  <td className="py-2 pr-4">{employee.name}</td>
-                  <td className="py-2 pr-4">{employee.email}</td>
-                  <td className="py-2 pr-4">
-                    <select
-                      className="brand-input px-2 py-1 text-sm"
-                      onChange={(event) =>
-                        updateLocalEmployee(employee.id, {
-                          role: event.target.value as "admin" | "employee",
-                        })
-                      }
-                      value={employee.role}
-                    >
-                      <option value="employee">employee</option>
-                      <option value="admin">admin</option>
-                    </select>
-                  </td>
-                  <td className="py-2 pr-4">
-                    <input
-                      checked={employee.active}
-                      onChange={(event) =>
-                        updateLocalEmployee(employee.id, { active: event.target.checked })
-                      }
-                      type="checkbox"
-                    />
-                  </td>
-                  <td className="py-2 pr-4">
-                    <button
-                      className="brand-button-secondary px-3 py-1 disabled:opacity-60"
-                      disabled={savingEmployeeId === employee.id}
-                      onClick={() => onSaveEmployee(employee)}
-                      type="button"
-                    >
-                      {savingEmployeeId === employee.id ? "Speichern..." : "Speichern"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {employees.length === 0 ? (
-                <tr>
-                  <td className="py-4 text-[var(--brand-text-muted)]" colSpan={5}>
-                    Keine Mitarbeiter gefunden.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
     </DashboardShell>
   );
 }
