@@ -63,7 +63,7 @@ export function PaymentOverviewChart({ paid, outstanding }: PaymentOverviewChart
                   fontSize: "12px",
                   color: "#fff",
                 }}
-                formatter={(value: number) => [formatEuro(value), ""]}
+                formatter={(value) => [formatEuro(Number(value)), ""]}
               />
             )}
           </PieChart>
