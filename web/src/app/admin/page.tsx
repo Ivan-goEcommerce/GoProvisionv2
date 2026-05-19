@@ -145,7 +145,9 @@ export default function AdminPage() {
   }, [filteredCommissions]);
 
   const allStatusOptions = useMemo(() => {
-    const customNames = customStatuses.map((s) => s.name);
+    const customNames = customStatuses
+      .map((s) => s.name)
+      .filter((name) => !BUILT_IN_STATUSES.includes(name));
     return [...BUILT_IN_STATUSES, ...customNames];
   }, [customStatuses]);
 
