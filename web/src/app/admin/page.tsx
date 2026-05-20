@@ -173,7 +173,7 @@ export default function AdminPage() {
   const allStatusOptions = useMemo(() => {
     const customNames = customStatuses
       .map((s) => s.name)
-      .filter((name) => !BUILT_IN_STATUSES.includes(name));
+      .filter((name) => !BUILT_IN_STATUSES.some((b) => b.toLowerCase() === name.toLowerCase()));
     return [...BUILT_IN_STATUSES, ...customNames];
   }, [customStatuses]);
 
