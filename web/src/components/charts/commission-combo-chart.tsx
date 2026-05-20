@@ -95,7 +95,7 @@ export function CommissionComboChart({ labels, monthly, cumulative }: Commission
             padding: 10,
             callbacks: {
               label(ctx) {
-                return ` ${ctx.dataset.label}: ${euroFull(ctx.parsed.y)}`;
+                return ` ${ctx.dataset.label}: ${euroFull(ctx.parsed.y ?? 0)}`;
               },
             },
           },
