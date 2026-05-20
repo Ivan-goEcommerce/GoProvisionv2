@@ -12,7 +12,6 @@ class AdminEmployee(BaseModel):
     email: str
     role: str
     active: bool
-    receive_email: bool
 
 
 class AdminCommissionEmployee(BaseModel):
@@ -46,7 +45,6 @@ class UpdateEmployeeRequest(BaseModel):
 
     role: str | None = None
     active: bool | None = None
-    receive_email: bool | None = None
 
     model_config = ConfigDict(extra="forbid")
 

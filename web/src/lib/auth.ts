@@ -4,7 +4,7 @@ import { AuthError, type EmailOtpType, type User } from "@supabase/supabase-js";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
-export type EmployeeRole = "admin" | "employee" | "extern";
+export type EmployeeRole = "admin" | "employee";
 export type CommissionStatus = "offen" | "in_bearbeitung" | "bezahlt" | "storniert";
 
 export type CommissionStatusEntry = {
@@ -19,7 +19,6 @@ export type EmployeeProfile = {
   email: string;
   role: EmployeeRole;
   active: boolean;
-  receive_email: boolean;
 };
 
 export type Commission = {
@@ -54,7 +53,6 @@ export type CreateEmployeeInput = {
 export type UpdateEmployeeInput = {
   role?: EmployeeRole;
   active?: boolean;
-  receive_email?: boolean;
 };
 
 export type UpdateCommissionStatusInput = {
@@ -304,7 +302,7 @@ export async function getEmployeeProfileByAuthUserId(
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("employees")
-    .select("id, auth_user_id, name, email, role, active, receive_email")
+    .select("id, auth_user_id, name, email, role, active")
     .eq("auth_user_id", authUserId)
     .single();
 
@@ -383,7 +381,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Employ
   const { data, error } = await supabase
     .from("employees")
     .insert(input)
-    .select("id, auth_user_id, name, email, role, active, receive_email")
+    .select("id, auth_user_id, name, email, role, active")
     .single();
 
   if (error || !data) {
