@@ -54,7 +54,6 @@ export function CommissionComboChart({ labels, monthly, cumulative }: Commission
               backgroundColor: "rgba(59, 130, 246, 0.7)",
               borderColor: "rgba(59, 130, 246, 1)",
               borderWidth: 1,
-              // @ts-expect-error borderRadius is valid at runtime
               borderRadius: 4,
               yAxisID: "yLeft",
               order: 2,
