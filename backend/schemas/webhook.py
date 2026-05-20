@@ -6,13 +6,6 @@ from pydantic import AnyHttpUrl, BaseModel, ConfigDict, EmailStr, Field, field_v
 
 ALLOWED_COMMISSION_STATUSES = ("offen", "in_bearbeitung", "bezahlt", "storniert")
 
-_STATUS_LEGACY_MAP = {
-    "open": "offen",
-    "in_progress": "in_bearbeitung",
-    "paid": "bezahlt",
-    "cancelled": "storniert",
-}
-
 
 class ParticipantInput(BaseModel):
     """Single participant in webhook payload."""
@@ -38,13 +31,8 @@ class CommissionWebhookRequest(BaseModel):
 
     @field_validator("status")
     @classmethod
-    def validate_status(cls, value: str) -> str:
-        normalized = value.strip().lower()
-        normalized = _STATUS_LEGACY_MAP.get(normalized, normalized)
-        if normalized not in ALLOWED_COMMISSION_STATUSES:
-            allowed = ", ".join(ALLOWED_COMMISSION_STATUSES)
-            raise ValueError(f"status must be one of: {allowed}")
-        return normalized
+    def normalize_status(cls, value: str) -> str:
+        return value.strip().lower()
 
     @field_validator("external_id")
     @classmethod
