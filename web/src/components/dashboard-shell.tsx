@@ -7,7 +7,6 @@ type DashboardShellProps = {
   title: string;
   subtitle: string;
   actions?: ReactNode;
-  navExtra?: ReactNode;
   children: ReactNode;
 };
 
@@ -15,16 +14,12 @@ export function DashboardShell({
   title,
   subtitle,
   actions,
-  navExtra,
   children,
 }: DashboardShellProps) {
   return (
     <main className="app-page">
-      <div className="dashboard-nav">
+      <div className="dashboard-nav justify-center">
         <BrandLogo compact subtitle="Admin und Mitarbeiter Bereich" />
-        {navExtra ? (
-          <div className="flex items-center pl-4">{navExtra}</div>
-        ) : null}
       </div>
 
       <header className="mb-6 flex flex-wrap items-center justify-between gap-3 animate-fade-in">

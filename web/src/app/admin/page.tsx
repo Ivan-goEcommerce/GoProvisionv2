@@ -18,7 +18,7 @@ import {
   updateCommissionStatus,
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { PaymentOverviewChart } from "@/components/charts/payment-overview-chart";
+import { CommissionComboChart } from "@/components/charts/commission-combo-chart";
 
 function formatEuro(amount: number): string {
   return new Intl.NumberFormat("de-DE", {
@@ -177,21 +177,28 @@ export default function AdminPage() {
     return [...BUILT_IN_STATUSES, ...customNames];
   }, [customStatuses]);
 
-  const currentMonthStats = useMemo(() => {
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const thisMonth = commissions.filter((row) => {
+  const monthlyChartData = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of commissions) {
+      if (row.status === "storniert") continue;
       const d = new Date(row.created_at);
-      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      map.set(key, (map.get(key) ?? 0) + row.commission_amount);
+    }
+    const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const labels = sorted.map(([key]) => {
+      const [year, month] = key.split("-");
+      return new Date(Number(year), Number(month) - 1).toLocaleDateString("de-DE", {
+        month: "short",
+        year: "2-digit",
+      });
     });
-    const paid = thisMonth
-      .filter((row) => row.status === "bezahlt")
-      .reduce((sum, row) => sum + row.commission_amount, 0);
-    const outstanding = thisMonth
-      .filter((row) => row.status !== "bezahlt" && row.status !== "storniert")
-      .reduce((sum, row) => sum + row.commission_amount, 0);
-    return { paid, outstanding };
+    const monthly = sorted.map(([, v]) => v);
+    const cumulative = monthly.reduce<number[]>((acc, v) => {
+      acc.push((acc[acc.length - 1] ?? 0) + v);
+      return acc;
+    }, []);
+    return { labels, monthly, cumulative };
   }, [commissions]);
 
   const updateCommissionDraftStatus = (commissionId: string, status: string) => {
@@ -329,13 +336,6 @@ export default function AdminPage() {
     <DashboardShell
       title="Admin Dashboard"
       subtitle={`Angemeldet als ${employeeName || "Admin"}`}
-      navExtra={
-        <PaymentOverviewChart
-          compact
-          outstanding={currentMonthStats.outstanding}
-          paid={currentMonthStats.paid}
-        />
-      }
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -438,6 +438,14 @@ export default function AdminPage() {
           <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <CommissionComboChart
+          cumulative={monthlyChartData.cumulative}
+          labels={monthlyChartData.labels}
+          monthly={monthlyChartData.monthly}
+        />
       </div>
 
       {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}
