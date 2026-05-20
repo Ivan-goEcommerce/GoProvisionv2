@@ -27,10 +27,6 @@ function formatEuro(amount: number): string {
   }).format(amount);
 }
 
-function formatStatusLabel(status: string): string {
-  if (status === "in_bearbeitung") return "In Bearbeitung";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
 
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -219,7 +215,7 @@ export default function AdminPage() {
         delete next[updated.id];
         return next;
       });
-      setInfo(`Provision ${updated.id} wurde auf ${formatStatusLabel(updated.status)} gesetzt.`);
+      setInfo(`Provision ${updated.id} wurde auf ${updated.status} gesetzt.`);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -519,7 +515,7 @@ export default function AdminPage() {
                   >
                     {allStatusOptions.map((statusOption) => (
                       <option key={statusOption} value={statusOption}>
-                        {formatStatusLabel(statusOption)}
+                        {statusOption}
                       </option>
                     ))}
                   </select>

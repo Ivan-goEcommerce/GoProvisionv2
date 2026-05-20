@@ -20,10 +20,6 @@ function formatEuro(amount: number): string {
   }).format(amount);
 }
 
-function formatStatusLabel(status: string): string {
-  if (status === "in_bearbeitung") return "In Bearbeitung";
-  return status.charAt(0).toUpperCase() + status.slice(1);
-}
 
 export default function EmployeePage() {
   const router = useRouter();
@@ -190,7 +186,7 @@ export default function EmployeePage() {
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
                 <td className="py-2 pr-4">
                   <span className={`status-badge status-${row.status}`}>
-                    {formatStatusLabel(row.status)}
+                    {row.status}
                   </span>
                 </td>
               </tr>
