@@ -17,8 +17,16 @@ import {
   signOut,
   updateCommissionStatus,
 } from "@/lib/auth";
+import dynamic from "next/dynamic";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { CommissionComboChart } from "@/components/charts/commission-combo-chart";
+
+const CommissionComboChart = dynamic(
+  () =>
+    import("@/components/charts/commission-combo-chart").then(
+      (m) => m.CommissionComboChart,
+    ),
+  { ssr: false },
+);
 
 function formatEuro(amount: number): string {
   return new Intl.NumberFormat("de-DE", {
