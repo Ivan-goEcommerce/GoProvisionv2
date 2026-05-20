@@ -56,7 +56,10 @@ export default function AdminPage() {
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
   const [customStatuses, setCustomStatuses] = useState<CommissionStatusEntry[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | "offen" | "bezahlt">("all");
-  const [monthFilter, setMonthFilter] = useState("");
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
   const [employeeFilter, setEmployeeFilter] = useState("all");
   const [savingCommissionId, setSavingCommissionId] = useState("");
   const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<Record<string, string>>({});
