@@ -4,7 +4,12 @@
       "Bash(Get-ChildItem -Path \"D:\\\\repos\\\\GoProvisionv2\" -Force)",
       "Bash(Select-Object Name, Mode)",
       "Bash(npm install *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\repos\\\\GoProvisionv2\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(python *)",
+      "Bash(Remove-Item *)",
+      "Bash(claude mcp *)"
     ]
   }
 }
