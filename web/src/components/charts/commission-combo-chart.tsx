@@ -42,7 +42,11 @@ export function CommissionComboChart({ labels, monthly, cumulative }: Commission
 
       if (cancelled || !canvasRef.current) return;
 
-      chartInstance = new Chart(canvasRef.current, {
+      const canvas = canvasRef.current;
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+
+      chartInstance = new Chart(canvas, {
         type: "bar",
         data: {
           labels,
@@ -140,14 +144,25 @@ export function CommissionComboChart({ labels, monthly, cumulative }: Commission
     };
   }, [labels, monthly, cumulative]);
 
+  if (labels.length === 0) {
+    return (
+      <div
+        className="metric-card flex items-center justify-center"
+        style={{ background: "var(--surface)", border: "1px solid var(--border)", height: 340 }}
+      >
+        <p className="text-sm text-[var(--brand-text-muted)]">Keine Provisionsdaten vorhanden.</p>
+      </div>
+    );
+  }
+
   return (
     <div
       className="metric-card"
       style={{ background: "var(--surface)", border: "1px solid var(--border)" }}
     >
       <p className="mb-4 text-sm font-semibold text-white">Provisionsübersicht</p>
-      <div style={{ height: 280 }}>
-        <canvas ref={canvasRef} />
+      <div style={{ position: "relative", height: 280 }}>
+        <canvas ref={canvasRef} style={{ display: "block" }} />
       </div>
     </div>
   );
