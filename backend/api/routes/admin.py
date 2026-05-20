@@ -122,7 +122,7 @@ def update_employee_as_admin(
     _require_admin_actor(authorization)
     admin_service = AdminService(get_service_supabase())
     updated = admin_service.update_employee(
-        employee_id=employee_id, role=payload.role, active=payload.active
+        employee_id=employee_id, role=payload.role, active=payload.active, receive_email=payload.receive_email
     )
     return AdminEmployee.model_validate(updated)
 

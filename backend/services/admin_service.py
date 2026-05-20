@@ -35,7 +35,7 @@ class AdminService:
         """Return active employee catalog for admin panel."""
         response = (
             self.supabase.table("employees")
-            .select("id, auth_user_id, name, email, role, active")
+            .select("id, auth_user_id, name, email, role, active, receive_email")
             .order("name", desc=False)
             .limit(limit)
             .execute()
@@ -43,7 +43,7 @@ class AdminService:
         return response.data or []
 
     def update_employee(
-        self, employee_id: str, role: str | None, active: bool | None
+        self, employee_id: str, role: str | None, active: bool | None, receive_email: bool | None
     ) -> dict:
         """Update mutable employee fields and return updated row."""
         updates: dict[str, str | bool] = {}
@@ -51,10 +51,12 @@ class AdminService:
             updates["role"] = role
         if active is not None:
             updates["active"] = active
+        if receive_email is not None:
+            updates["receive_email"] = receive_email
         if not updates:
             raise AppError(
                 error="validation_error",
-                message="At least one field (role or active) must be provided.",
+                message="At least one field (role, active, or receive_email) must be provided.",
                 status_code=422,
             )
 
@@ -62,7 +64,7 @@ class AdminService:
             self.supabase.table("employees")
             .update(updates)
             .eq("id", employee_id)
-            .select("id, auth_user_id, name, email, role, active")
+            .select("id, auth_user_id, name, email, role, active, receive_email")
             .execute()
         )
         rows = response.data or []

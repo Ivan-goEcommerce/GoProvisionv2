@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, LogOut, Mail, Settings } from "lucide-react";
 
@@ -71,25 +71,8 @@ export default function AdminPage() {
 
   // E-Mail state
   const [lastExport, setLastExport] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [showEmailDropdown, setShowEmailDropdown] = useState(false);
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [emailError, setEmailError] = useState("");
-  const emailDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (emailDropdownRef.current && !emailDropdownRef.current.contains(event.target as Node)) {
-        setShowEmailDropdown(false);
-      }
-    };
-    if (showEmailDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showEmailDropdown]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -282,21 +265,10 @@ export default function AdminPage() {
     }
   };
 
-  const toggleEmployeeSelection = (employeeId: string) => {
-    setSelectedEmployeeIds((current) => {
-      const next = new Set(current);
-      if (next.has(employeeId)) {
-        next.delete(employeeId);
-      } else {
-        next.add(employeeId);
-      }
-      return next;
-    });
-  };
-
   const onSendEmail = async () => {
-    if (selectedEmployeeIds.size === 0) {
-      setEmailError("Bitte mindestens einen Empfänger auswählen.");
+    const recipients = employees.filter((e) => e.receive_email);
+    if (recipients.length === 0) {
+      setEmailError("Keine Empfänger konfiguriert. Bitte E-Mail-Empfänger in der Verwaltung aktivieren.");
       return;
     }
     setEmailError("");
@@ -306,9 +278,7 @@ export default function AdminPage() {
       setLastExport({ blob: result.blob, filename: result.filename });
 
       const csvBase64 = await blobToBase64(result.blob);
-      const selectedEmails = employees
-        .filter((e) => selectedEmployeeIds.has(e.id))
-        .map((e) => e.email);
+      const selectedEmails = recipients.map((e) => e.email);
 
       const response = await fetch("/api/send-email", {
         method: "POST",
@@ -323,8 +293,6 @@ export default function AdminPage() {
 
       const refreshed = await getCommissionsForAdmin();
       setCommissions(refreshed);
-      setShowEmailDropdown(false);
-      setSelectedEmployeeIds(new Set());
       const emptyHint = result.rowCount === 0 && result.emptyReason ? ` Hinweis: ${result.emptyReason}` : "";
       setInfo(
         `E-Mail mit „${result.filename}" an ${selectedEmails.length} Empfänger gesendet. ${result.rowCount} Provisionen auf bezahlt gesetzt.${emptyHint}`,
@@ -365,65 +333,21 @@ export default function AdminPage() {
           </button>
 
           {/* E-Mail senden */}
-          <div className="relative" ref={emailDropdownRef}>
+          <div className="flex flex-col items-end gap-1">
             <button
-              className="brand-button-secondary"
-              onClick={() => {
-                setEmailError("");
-                setShowEmailDropdown((v) => !v);
-              }}
+              className="brand-button-secondary disabled:opacity-60"
+              disabled={isSendingEmail}
+              onClick={() => { void onSendEmail(); }}
               type="button"
             >
               <Mail size={16} />
-              E-Mail senden
+              {isSendingEmail
+                ? "Senden..."
+                : `E-Mail senden (${employees.filter((e) => e.receive_email).length})`}
             </button>
-
-            {showEmailDropdown && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-[var(--border)] bg-[var(--brand-bg)] p-4 shadow-xl">
-                <p className="mb-3 text-sm font-semibold text-white">Empfänger auswählen</p>
-                <div className="mb-3 max-h-52 space-y-2 overflow-y-auto">
-                  {employees.map((employee) => (
-                    <label
-                      key={employee.id}
-                      className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-[var(--brand-surface)]"
-                    >
-                      <input
-                        checked={selectedEmployeeIds.has(employee.id)}
-                        className="accent-[var(--brand-primary)]"
-                        onChange={() => toggleEmployeeSelection(employee.id)}
-                        type="checkbox"
-                      />
-                      <span className="text-white">{employee.name}</span>
-                      <span className="ml-auto truncate text-xs text-[var(--brand-text-muted)]">
-                        {employee.email}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                {emailError ? (
-                  <p className="mb-2 text-xs text-red-400">{emailError}</p>
-                ) : null}
-                <div className="flex gap-2">
-                  <button
-                    className="brand-button-accent flex-1 disabled:opacity-60"
-                    disabled={selectedEmployeeIds.size === 0 || isSendingEmail}
-                    onClick={() => { void onSendEmail(); }}
-                    type="button"
-                  >
-                    {isSendingEmail
-                      ? "Senden..."
-                      : `Senden (${selectedEmployeeIds.size})`}
-                  </button>
-                  <button
-                    className="brand-button-secondary"
-                    onClick={() => setShowEmailDropdown(false)}
-                    type="button"
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              </div>
-            )}
+            {emailError ? (
+              <p className="text-xs text-red-400">{emailError}</p>
+            ) : null}
           </div>
 
           <button

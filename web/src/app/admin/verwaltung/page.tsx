@@ -7,6 +7,7 @@ import { ArrowLeft, LogOut, Plus } from "lucide-react";
 import {
   type CommissionStatusEntry,
   type EmployeeProfile,
+  type EmployeeRole,
   createCommissionStatus,
   getCurrentUser,
   getCommissionStatuses,
@@ -98,6 +99,7 @@ export default function AdminVerwaltungPage() {
       const updated = await updateEmployee(employee.id, {
         role: employee.role,
         active: employee.active,
+        receive_email: employee.receive_email,
       });
       updateLocalEmployee(updated.id, updated);
       setInfo(`Mitarbeiter ${updated.name} wurde aktualisiert.`);
@@ -243,6 +245,7 @@ export default function AdminVerwaltungPage() {
                 <th className="py-2 pr-4">E-Mail</th>
                 <th className="py-2 pr-4">Rolle</th>
                 <th className="py-2 pr-4">Aktiv</th>
+                <th className="py-2 pr-4">E-Mail Empfänger</th>
                 <th className="py-2 pr-4">Aktion</th>
               </tr>
             </thead>
@@ -256,13 +259,14 @@ export default function AdminVerwaltungPage() {
                       className="brand-input px-2 py-1 text-sm"
                       onChange={(event) =>
                         updateLocalEmployee(employee.id, {
-                          role: event.target.value as "admin" | "employee",
+                          role: event.target.value as EmployeeRole,
                         })
                       }
                       value={employee.role}
                     >
                       <option value="employee">Mitarbeiter</option>
                       <option value="admin">Administrator</option>
+                      <option value="extern">Extern</option>
                     </select>
                   </td>
                   <td className="py-2 pr-4">
@@ -270,6 +274,15 @@ export default function AdminVerwaltungPage() {
                       checked={employee.active}
                       onChange={(event) =>
                         updateLocalEmployee(employee.id, { active: event.target.checked })
+                      }
+                      type="checkbox"
+                    />
+                  </td>
+                  <td className="py-2 pr-4">
+                    <input
+                      checked={employee.receive_email}
+                      onChange={(event) =>
+                        updateLocalEmployee(employee.id, { receive_email: event.target.checked })
                       }
                       type="checkbox"
                     />
@@ -288,7 +301,7 @@ export default function AdminVerwaltungPage() {
               ))}
               {employees.length === 0 ? (
                 <tr>
-                  <td className="py-4 text-[var(--brand-text-muted)]" colSpan={5}>
+                  <td className="py-4 text-[var(--brand-text-muted)]" colSpan={6}>
                     Keine Mitarbeiter gefunden.
                   </td>
                 </tr>

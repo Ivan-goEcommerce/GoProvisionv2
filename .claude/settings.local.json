@@ -9,7 +9,11 @@
       "Bash(Select-Object Name)",
       "Bash(python *)",
       "Bash(Remove-Item *)",
-      "Bash(claude mcp *)"
+      "Bash(claude mcp *)",
+      "Bash(npm uninstall *)",
+      "Bash(npx tsc *)",
+      "PowerShell(Get-Command *)",
+      "PowerShell($items = [System.IO.Directory]::GetFileSystemEntries\\(\"D:\\\\repos\\\\GoProvisionv2\\\\web\"\\); $items | ForEach-Object { [System.IO.Path]::GetFileName\\($_\\) })"
     ]
   }
 }
