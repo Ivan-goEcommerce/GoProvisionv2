@@ -157,15 +157,18 @@ export default function AdminPage() {
   }, [commissions, employeeFilter, monthFilter, statusFilter]);
 
   const totals = useMemo(() => {
+    const base = employeeFilter === "all"
+      ? commissions
+      : commissions.filter((row) => row.employee_id === employeeFilter);
     return {
-      open: commissions
+      open: base
         .filter((row) => row.status !== "bezahlt" && row.status !== "storniert")
         .reduce((sum, row) => sum + row.commission_amount, 0),
-      paid: commissions
+      paid: base
         .filter((row) => row.status === "bezahlt")
         .reduce((sum, row) => sum + row.commission_amount, 0),
     };
-  }, [commissions]);
+  }, [commissions, employeeFilter]);
 
   const allStatusOptions = useMemo(() => {
     const customNames = customStatuses
@@ -175,8 +178,11 @@ export default function AdminPage() {
   }, [customStatuses]);
 
   const monthlyChartData = useMemo(() => {
+    const base = employeeFilter === "all"
+      ? commissions
+      : commissions.filter((row) => row.employee_id === employeeFilter);
     const map = new Map<string, number>();
-    for (const row of commissions) {
+    for (const row of base) {
       if (row.status === "storniert") continue;
       const d = new Date(row.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -196,7 +202,7 @@ export default function AdminPage() {
       return acc;
     }, []);
     return { labels, monthly, cumulative };
-  }, [commissions]);
+  }, [commissions, employeeFilter]);
 
   const updateCommissionDraftStatus = (commissionId: string, status: string) => {
     setCommissionStatusDrafts((current) => ({ ...current, [commissionId]: status }));
