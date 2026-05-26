@@ -28,7 +28,10 @@ export default function EmployeePage() {
   const [employeeName, setEmployeeName] = useState("");
   const [commissions, setCommissions] = useState<Commission[]>([]);
   const [statusFilter, setStatusFilter] = useState<"all" | "offen" | "bezahlt">("all");
-  const [monthFilter, setMonthFilter] = useState("");
+  const [monthFilter, setMonthFilter] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  });
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -154,7 +157,7 @@ export default function EmployeePage() {
           </select>
         </label>
         <label className="text-sm text-[var(--brand-text-muted)]">
-          Monat (optional)
+          Monat
           <input
             className="brand-input mt-1 block"
             onChange={(event) => setMonthFilter(event.target.value)}
