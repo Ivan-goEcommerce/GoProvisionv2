@@ -158,14 +158,14 @@ export default function AdminPage() {
 
   const totals = useMemo(() => {
     return {
-      open: filteredCommissions
+      open: commissions
         .filter((row) => row.status !== "bezahlt" && row.status !== "storniert")
         .reduce((sum, row) => sum + row.commission_amount, 0),
-      paid: filteredCommissions
+      paid: commissions
         .filter((row) => row.status === "bezahlt")
         .reduce((sum, row) => sum + row.commission_amount, 0),
     };
-  }, [filteredCommissions]);
+  }, [commissions]);
 
   const allStatusOptions = useMemo(() => {
     const customNames = customStatuses
