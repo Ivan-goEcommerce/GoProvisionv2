@@ -35,6 +35,13 @@ export default function ResetPasswordPage() {
       }
     }
 
+    // Supabase error redirect (e.g. otp_expired): mark invalid immediately
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    if (hashParams.get("error")) {
+      markInvalid();
+      return;
+    }
+
     // Listen for auth events first — catches both the supabase-js auto-exchange
     // (detectSessionInUrl) and any explicit exchange below.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(

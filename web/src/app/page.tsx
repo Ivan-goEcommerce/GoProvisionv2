@@ -25,7 +25,10 @@ export default function LoginPage() {
     // the redirect URL is not in the project's allowed redirect list.
     // Forward any auth callback params to the correct handler page.
     if (typeof window !== "undefined") {
-      if (window.location.hash.includes("type=recovery")) {
+      if (
+        window.location.hash.includes("type=recovery") ||
+        window.location.hash.includes("error=")
+      ) {
         router.replace("/reset-password" + window.location.hash);
         return;
       }
