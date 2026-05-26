@@ -459,37 +459,52 @@ export default function AdminPage() {
                 <td className="py-2 pr-4">{(row.commission_rate * 100).toFixed(2)}%</td>
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
                 <td className="py-2 pr-4">
-                  {inlineEditId === row.id ? (
-                    <input
-                      autoFocus
-                      className="brand-input px-2 py-1 text-sm"
-                      onBlur={() => setInlineEditId(null)}
-                      onChange={(e) => setInlineEditValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") { void onInlineEditSave(row); }
-                        if (e.key === "Escape") { setInlineEditId(null); }
-                      }}
-                      placeholder="Status eingeben…"
-                      value={inlineEditValue}
-                    />
-                  ) : (
-                    <select
-                      className="brand-input px-2 py-1 text-sm"
-                      onChange={(event) => updateCommissionDraftStatus(row.id, event.target.value)}
-                      onDoubleClick={() => {
-                        setInlineEditId(row.id);
-                        setInlineEditValue(commissionStatusDrafts[row.id] ?? row.status);
-                      }}
-                      title="Doppelklick für eigenen Status"
-                      value={commissionStatusDrafts[row.id] ?? row.status}
-                    >
-                      {allStatusOptions.map((statusOption) => (
-                        <option key={statusOption} value={statusOption}>
-                          {statusOption}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                  {(() => {
+                    const currentStatus = commissionStatusDrafts[row.id] ?? row.status;
+                    const isCustom = !allStatusOptions.includes(currentStatus);
+                    if (inlineEditId === row.id) {
+                      return (
+                        <input
+                          autoFocus
+                          className="brand-input px-2 py-1 text-sm"
+                          onBlur={() => setInlineEditId(null)}
+                          onChange={(e) => setInlineEditValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { void onInlineEditSave(row); }
+                            if (e.key === "Escape") { setInlineEditId(null); }
+                          }}
+                          placeholder="Status eingeben…"
+                          value={inlineEditValue}
+                        />
+                      );
+                    }
+                    if (isCustom) {
+                      return (
+                        <span
+                          className="cursor-pointer rounded px-2 py-1 text-sm text-white hover:opacity-80"
+                          onDoubleClick={() => { setInlineEditId(row.id); setInlineEditValue(currentStatus); }}
+                          title="Doppelklick zum Bearbeiten"
+                        >
+                          {currentStatus}
+                        </span>
+                      );
+                    }
+                    return (
+                      <select
+                        className="brand-input px-2 py-1 text-sm"
+                        onChange={(event) => updateCommissionDraftStatus(row.id, event.target.value)}
+                        onDoubleClick={() => { setInlineEditId(row.id); setInlineEditValue(currentStatus); }}
+                        title="Doppelklick für eigenen Status"
+                        value={currentStatus}
+                      >
+                        {allStatusOptions.map((statusOption) => (
+                          <option key={statusOption} value={statusOption}>
+                            {statusOption}
+                          </option>
+                        ))}
+                      </select>
+                    );
+                  })()}
                 </td>
                 <td className="py-2 pr-4">
                   <button
