@@ -229,6 +229,11 @@ export default function AdminPage() {
       setCommissions((current) =>
         current.map((row) => (row.id === updated.id ? updated : row)),
       );
+      setCommissionStatusDrafts((current) => {
+        const next = { ...current };
+        delete next[updated.id];
+        return next;
+      });
       setInfo(`Provision ${updated.id} wurde auf „${updated.status}" gesetzt.`);
     } catch (requestError) {
       setError(
