@@ -21,6 +21,21 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    // Supabase may redirect to the site root instead of /reset-password when
+    // the redirect URL is not in the project's allowed redirect list.
+    // Forward any auth callback params to the correct handler page.
+    if (typeof window !== "undefined") {
+      if (window.location.hash.includes("type=recovery")) {
+        router.replace("/reset-password" + window.location.hash);
+        return;
+      }
+      const code = new URLSearchParams(window.location.search).get("code");
+      if (code) {
+        router.replace("/reset-password" + window.location.search);
+        return;
+      }
+    }
+
     const tryRestoreSession = async () => {
       try {
         const user = await getCurrentUser();
