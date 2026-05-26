@@ -12,7 +12,7 @@ import {
   signOut,
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { EmployeeCommissionChart } from "@/components/charts/employee-commission-chart";
+import { CommissionComboChart } from "@/components/charts/commission-combo-chart";
 
 function formatEuro(amount: number): string {
   return new Intl.NumberFormat("de-DE", {
@@ -106,18 +106,12 @@ export default function EmployeePage() {
   }, [filteredCommissions]);
 
   const monthlyChartData = useMemo(() => {
-    const map = new Map<string, { paid: number; open: number }>();
+    const map = new Map<string, number>();
     for (const row of commissions) {
       if (row.status === "storniert") continue;
       const d = new Date(row.created_at);
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-      const existing = map.get(key) ?? { paid: 0, open: 0 };
-      if (row.status === "bezahlt") {
-        existing.paid += row.commission_amount;
-      } else {
-        existing.open += row.commission_amount;
-      }
-      map.set(key, existing);
+      map.set(key, (map.get(key) ?? 0) + row.commission_amount);
     }
     const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
     const labels = sorted.map(([key]) => {
@@ -127,11 +121,12 @@ export default function EmployeePage() {
         year: "2-digit",
       });
     });
-    return {
-      labels,
-      paid: sorted.map(([, v]) => v.paid),
-      open: sorted.map(([, v]) => v.open),
-    };
+    const monthly = sorted.map(([, v]) => v);
+    const cumulative = monthly.reduce<number[]>((acc, v) => {
+      acc.push((acc[acc.length - 1] ?? 0) + v);
+      return acc;
+    }, []);
+    return { labels, monthly, cumulative };
   }, [commissions]);
 
   const onLogout = async () => {
@@ -170,10 +165,10 @@ export default function EmployeePage() {
       </div>
 
       <div className="mb-6">
-        <EmployeeCommissionChart
+        <CommissionComboChart
+          cumulative={monthlyChartData.cumulative}
           labels={monthlyChartData.labels}
-          open={monthlyChartData.open}
-          paid={monthlyChartData.paid}
+          monthly={monthlyChartData.monthly}
         />
       </div>
 
