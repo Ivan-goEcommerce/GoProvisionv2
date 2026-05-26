@@ -29,8 +29,11 @@ export default function LoginPage() {
         router.replace("/reset-password" + window.location.hash);
         return;
       }
-      const code = new URLSearchParams(window.location.search).get("code");
-      if (code) {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      const tokenHash = params.get("token_hash");
+      const type = params.get("type");
+      if (code || (tokenHash && type === "recovery")) {
         router.replace("/reset-password" + window.location.search);
         return;
       }

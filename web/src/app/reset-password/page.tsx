@@ -35,42 +35,35 @@ export default function ResetPasswordPage() {
       }
     }
 
-    // PKCE flow: ?code= in query params
-    const url = new URL(window.location.href);
-    const code = url.searchParams.get("code");
-    if (code) {
-      supabase.auth
-        .exchangeCodeForSession(code)
-        .then(({ error: exchangeError }) => {
-          if (exchangeError) {
-            markInvalid();
-          } else {
-            markReady();
-          }
-        })
-        .catch(() => markInvalid());
-      return;
-    }
-
-    // Implicit / OTP flow: Supabase fires PASSWORD_RECOVERY after processing hash or token_hash
+    // Listen for auth events first — catches both the supabase-js auto-exchange
+    // (detectSessionInUrl) and any explicit exchange below.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (event === "PASSWORD_RECOVERY" && session) {
-          markReady();
-        }
-        // Supabase sometimes fires SIGNED_IN for recovery sessions
-        if (event === "SIGNED_IN" && session?.user) {
-          markReady();
-        }
+        if (event === "PASSWORD_RECOVERY" && session) markReady();
+        if (event === "SIGNED_IN" && session?.user) markReady();
       },
     );
 
-    // Also check immediately — in case the client already processed the hash
+    // Check for an already-established session (client may have auto-processed the URL)
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        markReady();
-      }
+      if (data.session?.user) markReady();
     });
+
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get("code");
+    const tokenHash = url.searchParams.get("token_hash");
+    const type = url.searchParams.get("type");
+
+    if (code) {
+      // PKCE flow — ignore error if the client already auto-exchanged the code
+      supabase.auth.exchangeCodeForSession(code).catch(() => {});
+    } else if (tokenHash && type === "recovery") {
+      // OTP / email-link flow with token_hash
+      supabase.auth
+        .verifyOtp({ token_hash: tokenHash, type: "recovery" })
+        .then(({ error: otpError }) => { if (otpError) markInvalid(); })
+        .catch(() => markInvalid());
+    }
 
     // Fallback: if nothing resolved after 4s, show "invalid"
     const timeout = setTimeout(markInvalid, 4000);
