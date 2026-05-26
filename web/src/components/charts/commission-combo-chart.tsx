@@ -30,28 +30,11 @@ export function CommissionComboChart({ labels, monthly, cumulative }: Commission
 
     void (async () => {
       try {
-        const {
-          Chart,
-          CategoryScale,
-          LinearScale,
-          BarElement,
-          LineElement,
-          PointElement,
-          Tooltip,
-          Legend,
-        } = await import("chart.js");
+        const { Chart, registerables } = await import("chart.js");
 
         if (cancelled || !canvasRef.current) return;
 
-        Chart.register(
-          CategoryScale,
-          LinearScale,
-          BarElement,
-          LineElement,
-          PointElement,
-          Tooltip,
-          Legend,
-        );
+        Chart.register(...registerables);
 
         chartRef.current?.destroy();
 

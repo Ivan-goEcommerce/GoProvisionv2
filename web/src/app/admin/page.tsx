@@ -40,7 +40,7 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
-const BUILT_IN_STATUSES = ["offen", "in_bearbeitung", "bezahlt", "storniert"];
+const BUILT_IN_STATUSES = ["offen", "in bearbeitung", "bezahlt", "storniert"];
 
 export default function AdminPage() {
   const router = useRouter();
@@ -63,6 +63,7 @@ export default function AdminPage() {
   const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<Record<string, string>>({});
   const [isExporting, setIsExporting] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [perRowExtraStatuses, setPerRowExtraStatuses] = useState<Record<string, string[]>>({});
 
 
   useEffect(() => {
@@ -94,6 +95,20 @@ export default function AdminPage() {
         setCommissions(rows);
         setEmployees(employeeRows);
         setCustomStatuses(statusRows);
+
+        const allOpts = [
+          ...BUILT_IN_STATUSES,
+          ...statusRows
+            .map((s) => s.name)
+            .filter((name) => !BUILT_IN_STATUSES.some((b) => b.toLowerCase() === name.toLowerCase())),
+        ];
+        const initExtras: Record<string, string[]> = {};
+        for (const row of rows) {
+          if (!allOpts.some((o) => o.toLowerCase() === row.status.toLowerCase())) {
+            initExtras[row.id] = [row.status];
+          }
+        }
+        setPerRowExtraStatuses(initExtras);
       } catch (requestError) {
         if (requestError instanceof Error) {
           if (requestError.message === "Admin access required.") {
@@ -234,6 +249,13 @@ export default function AdminPage() {
         delete next[updated.id];
         return next;
       });
+      if (!allStatusOptions.some((o) => o.toLowerCase() === trimmed.toLowerCase())) {
+        setPerRowExtraStatuses((prev) => {
+          const existing = prev[commission.id] ?? [];
+          if (existing.some((e) => e.toLowerCase() === trimmed.toLowerCase())) return prev;
+          return { ...prev, [commission.id]: [...existing, trimmed] };
+        });
+      }
       setInfo(`Provision ${updated.id} wurde auf „${updated.status}" gesetzt.`);
     } catch (requestError) {
       setError(
@@ -459,36 +481,29 @@ export default function AdminPage() {
                 <td className="py-2 pr-4">{(row.commission_rate * 100).toFixed(2)}%</td>
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
                 <td className="py-2 pr-4">
-                  {(() => {
-                    const currentStatus = commissionStatusDrafts[row.id] ?? row.status;
-                    const isCustom = !allStatusOptions.includes(currentStatus);
-                    if (inlineEditId === row.id) {
-                      return (
-                        <input
-                          autoFocus
-                          className="brand-input px-2 py-1 text-sm"
-                          onBlur={() => setInlineEditId(null)}
-                          onChange={(e) => setInlineEditValue(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") { void onInlineEditSave(row); }
-                            if (e.key === "Escape") { setInlineEditId(null); }
-                          }}
-                          placeholder="Status eingeben…"
-                          value={inlineEditValue}
-                        />
-                      );
-                    }
-                    if (isCustom) {
-                      return (
-                        <span
-                          className="cursor-pointer rounded px-2 py-1 text-sm text-white hover:opacity-80"
-                          onDoubleClick={() => { setInlineEditId(row.id); setInlineEditValue(currentStatus); }}
-                          title="Doppelklick zum Bearbeiten"
-                        >
-                          {currentStatus}
-                        </span>
-                      );
-                    }
+                  {inlineEditId === row.id ? (
+                    <input
+                      autoFocus
+                      className="brand-input px-2 py-1 text-sm"
+                      onBlur={() => setInlineEditId(null)}
+                      onChange={(e) => setInlineEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { void onInlineEditSave(row); }
+                        if (e.key === "Escape") { setInlineEditId(null); }
+                      }}
+                      placeholder="Status eingeben…"
+                      value={inlineEditValue}
+                    />
+                  ) : (() => {
+                    const rawStatus = commissionStatusDrafts[row.id] ?? row.status;
+                    const rowExtras = perRowExtraStatuses[row.id] ?? [];
+                    const rowOptions = [
+                      ...allStatusOptions,
+                      ...rowExtras.filter((e) => !allStatusOptions.some((o) => o.toLowerCase() === e.toLowerCase())),
+                    ];
+                    const canonical = rowOptions.find((o) => o.toLowerCase() === rawStatus.toLowerCase());
+                    const currentStatus = canonical ?? rawStatus;
+                    const finalOptions = canonical ? rowOptions : [...rowOptions, rawStatus];
                     return (
                       <select
                         className="brand-input px-2 py-1 text-sm"
@@ -497,7 +512,7 @@ export default function AdminPage() {
                         title="Doppelklick für eigenen Status"
                         value={currentStatus}
                       >
-                        {allStatusOptions.map((statusOption) => (
+                        {finalOptions.map((statusOption) => (
                           <option key={statusOption} value={statusOption}>
                             {statusOption}
                           </option>
