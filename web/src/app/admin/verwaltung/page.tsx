@@ -2,16 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, LogOut, Plus } from "lucide-react";
+import { ArrowLeft, Check, LogOut, Pencil, Plus, Trash2, X } from "lucide-react";
 
 import {
   type CommissionStatusEntry,
   type EmployeeProfile,
   createCommissionStatus,
+  deleteCommissionStatus,
   getCurrentUser,
   getCommissionStatuses,
   getEmployeeProfileByAuthUserId,
   getEmployees,
+  renameCommissionStatus,
   signOut,
   updateEmployee,
 } from "@/lib/auth";
@@ -27,6 +29,9 @@ export default function AdminVerwaltungPage() {
   const [statuses, setStatuses] = useState<CommissionStatusEntry[]>([]);
   const [newStatusName, setNewStatusName] = useState("");
   const [isSavingStatus, setIsSavingStatus] = useState(false);
+  const [editingStatusId, setEditingStatusId] = useState<string | null>(null);
+  const [editingStatusName, setEditingStatusName] = useState("");
+  const [deletingStatusId, setDeletingStatusId] = useState<string | null>(null);
 
   const [employees, setEmployees] = useState<EmployeeProfile[]>([]);
   const [savingEmployeeId, setSavingEmployeeId] = useState("");
@@ -135,6 +140,63 @@ export default function AdminVerwaltungPage() {
     }
   };
 
+  const onStartEditStatus = (status: CommissionStatusEntry) => {
+    setEditingStatusId(status.id);
+    setEditingStatusName(status.name);
+  };
+
+  const onCancelEditStatus = () => {
+    setEditingStatusId(null);
+    setEditingStatusName("");
+  };
+
+  const onSaveEditStatus = async () => {
+    const name = editingStatusName.trim();
+    if (!name || !editingStatusId) return;
+    setError("");
+    setInfo("");
+    setIsSavingStatus(true);
+    try {
+      const updated = await renameCommissionStatus(editingStatusId, name);
+      setStatuses((current) =>
+        current
+          .map((s) => (s.id === updated.id ? updated : s))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      );
+      setEditingStatusId(null);
+      setEditingStatusName("");
+      setInfo(`Status wurde in „${updated.name}" umbenannt.`);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Status konnte nicht umbenannt werden.",
+      );
+    } finally {
+      setIsSavingStatus(false);
+    }
+  };
+
+  const onDeleteStatus = async (id: string) => {
+    setError("");
+    setInfo("");
+    setDeletingStatusId(id);
+    try {
+      await deleteCommissionStatus(id);
+      const deleted = statuses.find((s) => s.id === id);
+      setStatuses((current) => current.filter((s) => s.id !== id));
+      if (deleted) setInfo(`Status „${deleted.name}" wurde gelöscht.`);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Status konnte nicht gelöscht werden.",
+      );
+    } finally {
+      setDeletingStatusId(null);
+    }
+  };
+
   const onLogout = async () => {
     await signOut();
     router.replace("/");
@@ -209,18 +271,70 @@ export default function AdminVerwaltungPage() {
           </button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 space-y-2">
           {statuses.length > 0 ? (
-            <div className="flex flex-wrap gap-2">
-              {statuses.map((status) => (
-                <span
-                  key={status.id}
-                  className="status-chip"
-                >
-                  {status.name}
-                </span>
-              ))}
-            </div>
+            statuses.map((status) =>
+              editingStatusId === status.id ? (
+                <div key={status.id} className="flex items-center gap-2">
+                  <input
+                    autoFocus
+                    className="brand-input flex-1"
+                    disabled={isSavingStatus}
+                    maxLength={50}
+                    onChange={(e) => setEditingStatusName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") void onSaveEditStatus();
+                      if (e.key === "Escape") onCancelEditStatus();
+                    }}
+                    value={editingStatusName}
+                  />
+                  <button
+                    className="brand-button-accent px-2 py-1 disabled:opacity-60"
+                    disabled={isSavingStatus || !editingStatusName.trim()}
+                    onClick={() => { void onSaveEditStatus(); }}
+                    title="Speichern"
+                    type="button"
+                  >
+                    <Check size={14} />
+                  </button>
+                  <button
+                    className="brand-button-secondary px-2 py-1"
+                    disabled={isSavingStatus}
+                    onClick={onCancelEditStatus}
+                    title="Abbrechen"
+                    type="button"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ) : (
+                <div key={status.id} className="flex items-center gap-2">
+                  <span className="status-chip flex-shrink-0">{status.name}</span>
+                  <button
+                    className="brand-button-secondary px-2 py-1"
+                    disabled={deletingStatusId === status.id}
+                    onClick={() => onStartEditStatus(status)}
+                    title="Umbenennen"
+                    type="button"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    className="brand-button-secondary px-2 py-1 text-red-400 hover:text-red-300 disabled:opacity-60"
+                    disabled={deletingStatusId === status.id}
+                    onClick={() => { void onDeleteStatus(status.id); }}
+                    title="Löschen"
+                    type="button"
+                  >
+                    {deletingStatusId === status.id ? (
+                      <span className="text-xs">...</span>
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                  </button>
+                </div>
+              ),
+            )
           ) : (
             <p className="text-sm text-[var(--brand-text-muted)]">
               Noch keine benutzerdefinierten Status vorhanden.

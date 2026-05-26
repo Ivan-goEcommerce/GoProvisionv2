@@ -324,6 +324,28 @@ export async function createCommissionStatus(name: string): Promise<CommissionSt
   return data;
 }
 
+export async function renameCommissionStatus(id: string, name: string): Promise<CommissionStatusEntry> {
+  const supabase = getSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("status")
+    .update({ name: name.trim() })
+    .eq("id", id)
+    .select("id, name")
+    .single();
+  if (error || !data) {
+    throw new Error("Status konnte nicht umbenannt werden.");
+  }
+  return data;
+}
+
+export async function deleteCommissionStatus(id: string): Promise<void> {
+  const supabase = getSupabaseBrowserClient();
+  const { error } = await supabase.from("status").delete().eq("id", id);
+  if (error) {
+    throw new Error("Status konnte nicht gelöscht werden.");
+  }
+}
+
 export async function createEmployee(input: CreateEmployeeInput): Promise<EmployeeProfile> {
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
