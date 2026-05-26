@@ -282,7 +282,7 @@ export default function AdminPage() {
   const onSendEmail = async () => {
     const recipients = employees.filter((e) => e.receive_email);
     if (recipients.length === 0) {
-      setError("Keine Empfänger konfiguriert. Bitte in der Verwaltung „E-Mail erhalten" aktivieren.");
+      setError("Keine Empfänger konfiguriert. Bitte in der Verwaltung 'E-Mail erhalten' aktivieren.");
       return;
     }
     setError("");

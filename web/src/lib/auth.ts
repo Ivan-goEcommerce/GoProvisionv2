@@ -304,7 +304,7 @@ export async function getEmployeeProfileByAuthUserId(
   const supabase = getSupabaseBrowserClient();
   const { data, error } = await supabase
     .from("employees")
-    .select("id, auth_user_id, name, email, role, active")
+    .select("id, auth_user_id, name, email, role, active, receive_email")
     .eq("auth_user_id", authUserId)
     .single();
 
@@ -383,7 +383,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Employ
   const { data, error } = await supabase
     .from("employees")
     .insert(input)
-    .select("id, auth_user_id, name, email, role, active")
+    .select("id, auth_user_id, name, email, role, active, receive_email")
     .single();
 
   if (error || !data) {
