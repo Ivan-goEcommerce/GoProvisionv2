@@ -12,6 +12,7 @@ import {
   signOut,
 } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { EmployeeCommissionChart } from "@/components/charts/employee-commission-chart";
 
 function formatEuro(amount: number): string {
   return new Intl.NumberFormat("de-DE", {
@@ -104,6 +105,35 @@ export default function EmployeePage() {
     };
   }, [filteredCommissions]);
 
+  const monthlyChartData = useMemo(() => {
+    const map = new Map<string, { paid: number; open: number }>();
+    for (const row of commissions) {
+      if (row.status === "storniert") continue;
+      const d = new Date(row.created_at);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const existing = map.get(key) ?? { paid: 0, open: 0 };
+      if (row.status === "bezahlt") {
+        existing.paid += row.commission_amount;
+      } else {
+        existing.open += row.commission_amount;
+      }
+      map.set(key, existing);
+    }
+    const sorted = [...map.entries()].sort(([a], [b]) => a.localeCompare(b));
+    const labels = sorted.map(([key]) => {
+      const [year, month] = key.split("-");
+      return new Date(Number(year), Number(month) - 1).toLocaleDateString("de-DE", {
+        month: "short",
+        year: "2-digit",
+      });
+    });
+    return {
+      labels,
+      paid: sorted.map(([, v]) => v.paid),
+      open: sorted.map(([, v]) => v.open),
+    };
+  }, [commissions]);
+
   const onLogout = async () => {
     await signOut();
     router.replace("/");
@@ -129,14 +159,22 @@ export default function EmployeePage() {
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="metric-card">
+        <div className="metric-card stagger-1">
           <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
-        <div className="metric-card">
+        <div className="metric-card stagger-2">
           <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>
+      </div>
+
+      <div className="mb-6">
+        <EmployeeCommissionChart
+          labels={monthlyChartData.labels}
+          open={monthlyChartData.open}
+          paid={monthlyChartData.paid}
+        />
       </div>
 
       {error ? <p className="brand-error mb-4 rounded-md px-3 py-2 text-sm">{error}</p> : null}
