@@ -9,18 +9,19 @@ interface EmployeeCommissionChartProps {
   open: number[];
 }
 
-function euroK(value: number): string {
-  return `€${(value / 1000).toLocaleString("de-DE", { maximumFractionDigits: 1 })}K`;
-}
-
 function euroFull(value: number): string {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value);
 }
 
-export function EmployeeCommissionChart({ labels, paid, open }: EmployeeCommissionChartProps) {
+export function EmployeeCommissionChart({ paid, open }: EmployeeCommissionChartProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const chartRef = useRef<ChartType | null>(null);
   const [chartError, setChartError] = useState<string | null>(null);
+
+  const totalPaid = paid.reduce((s, v) => s + v, 0);
+  const totalOpen = open.reduce((s, v) => s + v, 0);
+  const total = totalPaid + totalOpen;
+  const paidPercent = total > 0 ? Math.round((totalPaid / total) * 100) : 0;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -37,37 +38,57 @@ export function EmployeeCommissionChart({ labels, paid, open }: EmployeeCommissi
         Chart.register(...registerables);
         chartRef.current?.destroy();
 
+        // Center-text plugin
+        const centerTextPlugin = {
+          id: "centerText",
+          afterDraw(chart: ChartType) {
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return;
+            const cx = (chartArea.left + chartArea.right) / 2;
+            const cy = (chartArea.top + chartArea.bottom) / 2;
+
+            ctx.save();
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "bold 28px inherit";
+            ctx.fillStyle = "#ffffff";
+            ctx.fillText(`${paidPercent}%`, cx, cy - 10);
+            ctx.font = "13px inherit";
+            ctx.fillStyle = "#737373";
+            ctx.fillText("bezahlt", cx, cy + 16);
+            ctx.restore();
+          },
+        };
+
         chartRef.current = new Chart(canvas, {
-          type: "bar",
+          type: "doughnut",
+          plugins: [centerTextPlugin],
           data: {
-            labels,
+            labels: ["Bezahlt", "Offen"],
             datasets: [
               {
-                label: "Bezahlt",
-                data: paid,
-                backgroundColor: "rgba(34, 197, 94, 0.7)",
-                borderColor: "rgba(34, 197, 94, 1)",
-                borderWidth: 1,
-                borderRadius: 4,
-              },
-              {
-                label: "Offen",
-                data: open,
-                backgroundColor: "rgba(251, 146, 60, 0.7)",
-                borderColor: "rgba(251, 146, 60, 1)",
-                borderWidth: 1,
-                borderRadius: 4,
+                data: [totalPaid, totalOpen],
+                backgroundColor: ["rgba(34, 197, 94, 0.8)", "rgba(251, 146, 60, 0.75)"],
+                borderColor: ["rgba(34, 197, 94, 1)", "rgba(251, 146, 60, 1)"],
+                borderWidth: 2,
+                hoverOffset: 8,
               },
             ],
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: "index", intersect: false },
+            // @ts-expect-error cutout is doughnut-specific and not in the generic union type
+            cutout: "68%",
             plugins: {
               legend: {
-                position: "top",
-                labels: { color: "#a3a3a3", boxWidth: 12, padding: 16, font: { size: 12 } },
+                position: "bottom",
+                labels: {
+                  color: "#a3a3a3",
+                  boxWidth: 12,
+                  padding: 20,
+                  font: { size: 12 },
+                },
               },
               tooltip: {
                 backgroundColor: "#1a1a1a",
@@ -75,22 +96,14 @@ export function EmployeeCommissionChart({ labels, paid, open }: EmployeeCommissi
                 borderWidth: 1,
                 titleColor: "#fff",
                 bodyColor: "#a3a3a3",
-                padding: 10,
+                padding: 12,
                 callbacks: {
                   label(ctx) {
-                    return ` ${ctx.dataset.label}: ${euroFull(ctx.parsed.y ?? 0)}`;
+                    const val = ctx.parsed as number;
+                    const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                    return `  ${ctx.label}: ${euroFull(val)} (${pct}%)`;
                   },
                 },
-              },
-            },
-            scales: {
-              x: {
-                ticks: { color: "#737373", font: { size: 11 } },
-                grid: { color: "rgba(255,255,255,0.04)" },
-              },
-              y: {
-                ticks: { color: "#737373", font: { size: 11 }, callback: (v) => euroK(Number(v)) },
-                grid: { color: "rgba(255,255,255,0.06)" },
               },
             },
           },
@@ -107,9 +120,9 @@ export function EmployeeCommissionChart({ labels, paid, open }: EmployeeCommissi
       chartRef.current?.destroy();
       chartRef.current = null;
     };
-  }, [labels, paid, open]);
+  }, [totalPaid, totalOpen, paidPercent, total]);
 
-  if (labels.length === 0) {
+  if (total === 0) {
     return (
       <div className="metric-card flex items-center justify-center" style={{ height: 300 }}>
         <p className="text-sm text-[var(--brand-text-muted)]">Keine Provisionsdaten vorhanden.</p>
@@ -129,7 +142,7 @@ export function EmployeeCommissionChart({ labels, paid, open }: EmployeeCommissi
   return (
     <div className="metric-card">
       <p className="mb-4 text-sm font-semibold text-white">Provisionsübersicht</p>
-      <div style={{ position: "relative", height: 260 }}>
+      <div style={{ position: "relative", height: 280 }}>
         <canvas ref={canvasRef} style={{ display: "block", width: "100%", height: "100%" }} />
       </div>
     </div>
