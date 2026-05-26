@@ -22,14 +22,14 @@ export function DashboardShell({
         <BrandLogo compact subtitle="Admin und Mitarbeiter Bereich" />
       </div>
 
-      <header className="mb-6 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+      <header className="mb-6 flex flex-wrap items-center justify-between gap-3 stagger-1" style={{ animation: "slide-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both" }}>
         <div>
           <h1 className="text-2xl font-semibold text-white">{title}</h1>
           <p className="mt-1 text-sm text-[var(--brand-text-muted)]">{subtitle}</p>
         </div>
         {actions}
       </header>
-      <section className="brand-card p-5 animate-slide-in">
+      <section className="brand-card p-5 animate-slide-in" style={{ animationDelay: "0.15s", animationFillMode: "both" }}>
         {children}
       </section>
     </main>

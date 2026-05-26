@@ -9,7 +9,15 @@
       "Bash(Select-Object Name)",
       "Bash(python *)",
       "Bash(Remove-Item *)",
-      "Bash(claude mcp *)"
+      "Bash(claude mcp *)",
+      "mcp__supabase__list_tables",
+      "mcp__supabase__apply_migration",
+      "Bash(npx tsc *)",
+      "mcp__supabase__execute_sql",
+      "mcp__supabase__get_logs",
+      "Bash(grep *)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3001/)"
     ]
   }
 }

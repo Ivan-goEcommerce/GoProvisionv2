@@ -395,11 +395,11 @@ export default function AdminPage() {
       }
     >
       <div className="mb-4 grid gap-3 sm:grid-cols-2">
-        <div className="metric-card">
+        <div className="metric-card stagger-1">
           <p className="text-xs text-[var(--brand-text-muted)]">Gesamt offen</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.open)}</p>
         </div>
-        <div className="metric-card">
+        <div className="metric-card stagger-2">
           <p className="text-xs text-[var(--brand-text-muted)]">Gesamt bezahlt</p>
           <p className="text-lg font-semibold text-white">{formatEuro(totals.paid)}</p>
         </div>

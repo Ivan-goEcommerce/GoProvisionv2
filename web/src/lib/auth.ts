@@ -1,6 +1,6 @@
 "use client";
 
-import { AuthError, type EmailOtpType, type User } from "@supabase/supabase-js";
+import { AuthError, type User } from "@supabase/supabase-js";
 
 import { getSupabaseBrowserClient } from "@/lib/supabase";
 
@@ -216,60 +216,6 @@ export async function sendPasswordRecoveryEmail(email: string): Promise<void> {
   }
 }
 
-function cleanupRecoveryUrlParameters(url: URL): void {
-  const keysToDelete = ["code", "token_hash", "type", "error", "error_code", "error_description"];
-  let changed = false;
-  for (const key of keysToDelete) {
-    if (url.searchParams.has(key)) {
-      url.searchParams.delete(key);
-      changed = true;
-    }
-  }
-
-  if (changed && typeof window !== "undefined") {
-    const nextUrl = `${url.pathname}${url.search}${url.hash}`;
-    window.history.replaceState({}, "", nextUrl);
-  }
-}
-
-export async function ensurePasswordRecoverySession(): Promise<void> {
-  if (typeof window === "undefined") {
-    throw new Error("Passwort-Reset ist nur im Browser verfügbar.");
-  }
-
-  const supabase = getSupabaseBrowserClient();
-  const url = new URL(window.location.href);
-
-  const code = url.searchParams.get("code");
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      throw new Error(toErrorMessage(error));
-    }
-    cleanupRecoveryUrlParameters(url);
-  } else {
-    const tokenHash = url.searchParams.get("token_hash");
-    const type = url.searchParams.get("type");
-    if (tokenHash && type) {
-      const { error } = await supabase.auth.verifyOtp({
-        type: type as EmailOtpType,
-        token_hash: tokenHash,
-      });
-      if (error) {
-        throw new Error(toErrorMessage(error));
-      }
-      cleanupRecoveryUrlParameters(url);
-    }
-  }
-
-  const { data, error } = await supabase.auth.getSession();
-  if (error) {
-    throw new Error(toErrorMessage(error));
-  }
-  if (!data.session) {
-    throw new Error("Reset-Link ungültig oder abgelaufen. Bitte Passwort-Reset erneut anfordern.");
-  }
-}
 
 export async function updatePassword(newPassword: string): Promise<void> {
   const supabase = getSupabaseBrowserClient();

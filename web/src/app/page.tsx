@@ -97,7 +97,7 @@ export default function LoginPage() {
   return (
     <main className="auth-shell">
       <div className="auth-card">
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-center">
           <BrandLogo showText={false} />
         </div>
 

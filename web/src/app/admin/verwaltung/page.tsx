@@ -177,7 +177,7 @@ export default function AdminVerwaltungPage() {
       {info ? <p className="brand-success mb-4 rounded-md px-3 py-2 text-sm">{info}</p> : null}
 
       {/* Bereich 1: Provisionsstatus verwalten */}
-      <div>
+      <div className="section-block stagger-1">
         <h2 className="text-lg font-semibold text-white">Provisionsstatus verwalten</h2>
         <p className="mt-1 text-sm text-[var(--brand-text-muted)]">
           Eigene Status erstellen, die im gesamten System bei der Status-Auswahl verfügbar sind.
@@ -215,7 +215,7 @@ export default function AdminVerwaltungPage() {
               {statuses.map((status) => (
                 <span
                   key={status.id}
-                  className="inline-flex items-center rounded-full border border-[var(--border)] bg-[var(--brand-surface)] px-3 py-1 text-sm text-white"
+                  className="status-chip"
                 >
                   {status.name}
                 </span>
@@ -230,7 +230,7 @@ export default function AdminVerwaltungPage() {
       </div>
 
       {/* Bereich 2: Mitarbeiterverwaltung */}
-      <div className="mt-8 border-t border-[var(--border)] pt-6">
+      <div className="section-block stagger-3 mt-8 border-t border-[var(--border)] pt-6">
         <h2 className="text-lg font-semibold text-white">Mitarbeiterverwaltung</h2>
         <p className="mt-1 text-sm text-[var(--brand-text-muted)]">
           Bestehende Rollen und Aktiv-Status verwalten.
