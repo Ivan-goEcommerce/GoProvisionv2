@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Download, LogOut, Mail, Settings } from "lucide-react";
 
@@ -57,31 +57,13 @@ export default function AdminPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
   const [employeeFilter, setEmployeeFilter] = useState("all");
+  const [inlineEditId, setInlineEditId] = useState<string | null>(null);
+  const [inlineEditValue, setInlineEditValue] = useState("");
   const [savingCommissionId, setSavingCommissionId] = useState("");
   const [commissionStatusDrafts, setCommissionStatusDrafts] = useState<Record<string, string>>({});
   const [isExporting, setIsExporting] = useState(false);
-
-  // E-Mail state
-  const [lastExport, setLastExport] = useState<{ blob: Blob; filename: string } | null>(null);
-  const [showEmailDropdown, setShowEmailDropdown] = useState(false);
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<Set<string>>(new Set());
   const [isSendingEmail, setIsSendingEmail] = useState(false);
-  const [emailError, setEmailError] = useState("");
-  const emailDropdownRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (emailDropdownRef.current && !emailDropdownRef.current.contains(event.target as Node)) {
-        setShowEmailDropdown(false);
-      }
-    };
-    if (showEmailDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showEmailDropdown]);
 
   useEffect(() => {
     const loadDashboard = async () => {
@@ -234,6 +216,31 @@ export default function AdminPage() {
     }
   };
 
+  const onInlineEditSave = async (commission: Commission) => {
+    const trimmed = inlineEditValue.trim();
+    setInlineEditId(null);
+    if (!trimmed || trimmed === commission.status) return;
+
+    setError("");
+    setInfo("");
+    setSavingCommissionId(commission.id);
+    try {
+      const updated = await updateCommissionStatus(commission.id, { status: trimmed });
+      setCommissions((current) =>
+        current.map((row) => (row.id === updated.id ? updated : row)),
+      );
+      setInfo(`Provision ${updated.id} wurde auf „${updated.status}" gesetzt.`);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Provision-Status konnte nicht aktualisiert werden.",
+      );
+    } finally {
+      setSavingCommissionId("");
+    }
+  };
+
   const onLogout = async () => {
     await signOut();
     router.replace("/");
@@ -254,8 +261,6 @@ export default function AdminPage() {
       anchor.remove();
       URL.revokeObjectURL(objectUrl);
 
-      setLastExport({ blob: result.blob, filename: result.filename });
-
       const refreshed = await getCommissionsForAdmin();
       setCommissions(refreshed);
       const emptyHint =
@@ -274,33 +279,19 @@ export default function AdminPage() {
     }
   };
 
-  const toggleEmployeeSelection = (employeeId: string) => {
-    setSelectedEmployeeIds((current) => {
-      const next = new Set(current);
-      if (next.has(employeeId)) {
-        next.delete(employeeId);
-      } else {
-        next.add(employeeId);
-      }
-      return next;
-    });
-  };
-
   const onSendEmail = async () => {
-    if (selectedEmployeeIds.size === 0) {
-      setEmailError("Bitte mindestens einen Empfänger auswählen.");
+    const recipients = employees.filter((e) => e.receive_email);
+    if (recipients.length === 0) {
+      setError("Keine Empfänger konfiguriert. Bitte in der Verwaltung „E-Mail erhalten" aktivieren.");
       return;
     }
-    setEmailError("");
+    setError("");
+    setInfo("");
     setIsSendingEmail(true);
     try {
       const result = await exportPreviousMonthOpenCommissionsCsv();
-      setLastExport({ blob: result.blob, filename: result.filename });
-
       const csvBase64 = await blobToBase64(result.blob);
-      const selectedEmails = employees
-        .filter((e) => selectedEmployeeIds.has(e.id))
-        .map((e) => e.email);
+      const selectedEmails = recipients.map((e) => e.email);
 
       const response = await fetch("/api/send-email", {
         method: "POST",
@@ -315,14 +306,12 @@ export default function AdminPage() {
 
       const refreshed = await getCommissionsForAdmin();
       setCommissions(refreshed);
-      setShowEmailDropdown(false);
-      setSelectedEmployeeIds(new Set());
       const emptyHint = result.rowCount === 0 && result.emptyReason ? ` Hinweis: ${result.emptyReason}` : "";
       setInfo(
         `E-Mail mit „${result.filename}" an ${selectedEmails.length} Empfänger gesendet. ${result.rowCount} Provisionen auf bezahlt gesetzt.${emptyHint}`,
       );
     } catch (err) {
-      setEmailError(err instanceof Error ? err.message : "E-Mail konnte nicht gesendet werden.");
+      setError(err instanceof Error ? err.message : "E-Mail konnte nicht gesendet werden.");
     } finally {
       setIsSendingEmail(false);
     }
@@ -357,66 +346,15 @@ export default function AdminPage() {
           </button>
 
           {/* E-Mail senden */}
-          <div className="relative" ref={emailDropdownRef}>
-            <button
-              className="brand-button-secondary"
-              onClick={() => {
-                setEmailError("");
-                setShowEmailDropdown((v) => !v);
-              }}
-              type="button"
-            >
-              <Mail size={16} />
-              E-Mail senden
-            </button>
-
-            {showEmailDropdown && (
-              <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-[var(--border)] bg-[var(--brand-bg)] p-4 shadow-xl">
-                <p className="mb-3 text-sm font-semibold text-white">Empfänger auswählen</p>
-                <div className="mb-3 max-h-52 space-y-2 overflow-y-auto">
-                  {employees.map((employee) => (
-                    <label
-                      key={employee.id}
-                      className="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-sm hover:bg-[var(--brand-surface)]"
-                    >
-                      <input
-                        checked={selectedEmployeeIds.has(employee.id)}
-                        className="accent-[var(--brand-primary)]"
-                        onChange={() => toggleEmployeeSelection(employee.id)}
-                        type="checkbox"
-                      />
-                      <span className="text-white">{employee.name}</span>
-                      <span className="ml-auto truncate text-xs text-[var(--brand-text-muted)]">
-                        {employee.email}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-                {emailError ? (
-                  <p className="mb-2 text-xs text-red-400">{emailError}</p>
-                ) : null}
-                <div className="flex gap-2">
-                  <button
-                    className="brand-button-accent flex-1 disabled:opacity-60"
-                    disabled={selectedEmployeeIds.size === 0 || isSendingEmail}
-                    onClick={() => { void onSendEmail(); }}
-                    type="button"
-                  >
-                    {isSendingEmail
-                      ? "Senden..."
-                      : `Senden (${selectedEmployeeIds.size})`}
-                  </button>
-                  <button
-                    className="brand-button-secondary"
-                    onClick={() => setShowEmailDropdown(false)}
-                    type="button"
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            className="brand-button-secondary disabled:opacity-60"
+            disabled={isSendingEmail}
+            onClick={() => { void onSendEmail(); }}
+            type="button"
+          >
+            <Mail size={16} />
+            {isSendingEmail ? "Senden..." : "E-Mail senden"}
+          </button>
 
           <button
             className="brand-button-secondary"
@@ -516,17 +454,37 @@ export default function AdminPage() {
                 <td className="py-2 pr-4">{(row.commission_rate * 100).toFixed(2)}%</td>
                 <td className="py-2 pr-4">{formatEuro(row.commission_amount)}</td>
                 <td className="py-2 pr-4">
-                  <select
-                    className="brand-input px-2 py-1 text-sm"
-                    onChange={(event) => updateCommissionDraftStatus(row.id, event.target.value)}
-                    value={commissionStatusDrafts[row.id] ?? row.status}
-                  >
-                    {allStatusOptions.map((statusOption) => (
-                      <option key={statusOption} value={statusOption}>
-                        {statusOption}
-                      </option>
-                    ))}
-                  </select>
+                  {inlineEditId === row.id ? (
+                    <input
+                      autoFocus
+                      className="brand-input px-2 py-1 text-sm"
+                      onBlur={() => setInlineEditId(null)}
+                      onChange={(e) => setInlineEditValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { void onInlineEditSave(row); }
+                        if (e.key === "Escape") { setInlineEditId(null); }
+                      }}
+                      placeholder="Status eingeben…"
+                      value={inlineEditValue}
+                    />
+                  ) : (
+                    <select
+                      className="brand-input px-2 py-1 text-sm"
+                      onChange={(event) => updateCommissionDraftStatus(row.id, event.target.value)}
+                      onDoubleClick={() => {
+                        setInlineEditId(row.id);
+                        setInlineEditValue(commissionStatusDrafts[row.id] ?? row.status);
+                      }}
+                      title="Doppelklick für eigenen Status"
+                      value={commissionStatusDrafts[row.id] ?? row.status}
+                    >
+                      {allStatusOptions.map((statusOption) => (
+                        <option key={statusOption} value={statusOption}>
+                          {statusOption}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </td>
                 <td className="py-2 pr-4">
                   <button
